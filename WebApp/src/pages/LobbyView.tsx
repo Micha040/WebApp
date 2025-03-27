@@ -29,6 +29,22 @@ export default function LobbyView({ username }: { username: string }) {
   const [showChat, setShowChat] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
 
+  const [settings, setSettings] = useState({
+    roundTime: 60,
+    maxPlayers: 8,
+    difficulty: 'normal',
+    allowHints: true,
+  });
+
+  const isHost = username === lobby?.host;
+
+  const fetchPlayers = async () => {
+    const res = await fetch(`http://localhost:3000/lobbys/${id}/players`);
+    const data = await res.json();
+    setPlayers(data);
+    
+  };
+
   // Spieler- und Lobby-Daten laden
   useEffect(() => {
     if (!id) return;
@@ -37,13 +53,19 @@ export default function LobbyView({ username }: { username: string }) {
       const lobbyRes = await fetch(`http://localhost:3000/lobbys/${id}`);
       const lobbyData = await lobbyRes.json();
       setLobby(lobbyData);
+    
+      setSettings({
+        roundTime: lobbyData.round_time,
+        maxPlayers: lobbyData.max_players,
+        difficulty: lobbyData.difficulty,
+        allowHints: lobbyData.allow_hints,
+      });
     };
+    
 
-    const fetchPlayers = async () => {
-      const res = await fetch(`http://localhost:3000/lobbys/${id}/players`);
-      const data = await res.json();
-      setPlayers(data);
-    };
+    
+
+    
 
     fetchLobby();
     fetchPlayers();
@@ -68,6 +90,70 @@ export default function LobbyView({ username }: { username: string }) {
       supabase.removeChannel(playerChannel);
     };
   }, [id]);
+
+  const handleSettingChange = async (key: string, value: any) => {
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+  
+    if (isHost && id) {
+      await fetch(`http://localhost:3000/lobbys/${id}/settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          [key === 'roundTime' ? 'round_time' : key === 'maxPlayers' ? 'max_players' : key === 'allowHints' ? 'allow_hints' : key]: value,
+        }),
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!id) return;
+  
+    const channel = supabase
+      .channel(`lobby-settings-${id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'lobbys',
+        filter: `id=eq.${id}`,
+      }, (payload) => {
+        const updated = payload.new;
+        setSettings({
+          roundTime: updated.round_time,
+          maxPlayers: updated.max_players,
+          difficulty: updated.difficulty,
+          allowHints: updated.allow_hints,
+        });
+      })
+      .subscribe();
+  
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id]);  
+  
+  useEffect(() => {
+    if (!id) return;
+  
+    const channel = supabase
+      .channel(`lobby-${id}`)
+      .on('broadcast', { event: 'player-kicked' }, (payload) => {
+        const kickedUser = payload.payload.username;
+  
+        if (kickedUser === username) {
+          alert("Du wurdest vom Host entfernt.");
+          navigate("/");
+        }
+      })
+      .subscribe();
+  
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, username, navigate]);
+  
+  
+  
 
   // 🔴 Nachrichten-Indikator: hört auf neue Nachrichten, auch wenn Chat geschlossen ist
   useEffect(() => {
@@ -97,6 +183,30 @@ export default function LobbyView({ username }: { username: string }) {
     };
   }, [id, showChat]);
 
+  const kickPlayer = async (playerUsername: string) => {
+    if (!id) return;
+  
+    const res = await fetch(`http://localhost:3000/lobby/${id}/kick/${playerUsername}`, {
+      method: 'DELETE',
+    });
+  
+    if (res.ok) {
+      // Broadcast an alle Clients
+      await supabase.channel(`lobby-${id}`).send({
+        type: 'broadcast',
+        event: 'player-kicked',
+        payload: { username: playerUsername },
+      });
+  
+      // ✅ Spielerliste neu laden, damit der Host die Änderung sofort sieht
+      fetchPlayers();
+    } else {
+      console.error("Kick fehlgeschlagen");
+    }
+  };
+  
+  
+
   const handleLeaveLobby = async () => {
     if (!id || !username) return;
 
@@ -124,7 +234,7 @@ export default function LobbyView({ username }: { username: string }) {
         backgroundColor: '#121212',
       }}
     >
-      <h1>🏷️ Lobby: {lobby.name}</h1>
+      <h1>Lobby: {lobby.name}</h1>
       <p>👑 Host: <strong>{lobby.host}</strong></p>
 
       <table
@@ -146,7 +256,7 @@ export default function LobbyView({ username }: { username: string }) {
           </tr>
         </thead>
         <tbody>
-          {players.map((player) => (
+        {players.map((player) => (
             <tr
               key={player.id}
               style={{
@@ -161,10 +271,154 @@ export default function LobbyView({ username }: { username: string }) {
               <td style={tdStyle}>
                 {player.username === lobby.host ? '👑 Host' : '👤 Spieler'}
               </td>
+
+              {/* Kick-Button nur sichtbar für Host und nicht bei sich selbst */}
+              {isHost && (
+                <td style={tdStyle}>
+                  {player.username !== username && (
+                    <button
+                    onClick={() => {
+                      const confirmKick = confirm(`Willst du ${player.username} wirklich kicken?`);
+                      if (!confirmKick) return;
+                    
+                      kickPlayer(player.username);
+                    }}                    
+                      style={{
+                        backgroundColor: '#8b0000',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '0.3rem 0.6rem',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      🚫 Kick
+                    </button>
+                  )}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
+
+      {/* Einstellungen */}
+      <div style={{
+    backgroundColor: '#1a1a1a',
+    padding: '1.5rem',
+    borderRadius: '10px',
+    boxShadow: '0 0 10px rgba(0,0,0,0.3)',
+    marginTop: '2rem',
+    maxWidth: '500px',
+  }}>
+          <h2>⚙️ Einstellungen</h2>
+
+          <div style={{ opacity: isHost ? 1 : 0.5, pointerEvents: isHost ? 'auto' : 'none', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
+            <label>
+              ⏱️ Rundenzeit (Sekunden):
+              <input
+                type="number"
+                value={settings.roundTime}
+                onChange={(e) => handleSettingChange('roundTime', Number(e.target.value))}
+                style={{
+                  backgroundColor: '#2c2c2c',
+                  color: '#fff',
+                  border: '1px solid #555',
+                  padding: '0.5rem',
+                  borderRadius: '5px',
+                  width: '100%',
+                  outline: 'none',
+                  transition: 'border 0.2s',
+                }}
+                onFocus={(e) => e.currentTarget.style.border = '1px solid #888'}
+                onBlur={(e) => e.currentTarget.style.border = '1px solid #555'}
+              />
+            </label>
+
+            <label>
+              👥 Max. Spieler:
+              <input
+                type="number"
+                value={settings.maxPlayers}
+                onChange={(e) => handleSettingChange('maxPlayers', Number(e.target.value))}
+                style={{
+                  backgroundColor: '#2c2c2c',
+                  color: '#fff',
+                  border: '1px solid #555',
+                  padding: '0.5rem',
+                  borderRadius: '5px',
+                  width: '100%',
+                  outline: 'none',
+                  transition: 'border 0.2s',
+                }}
+                onFocus={(e) => e.currentTarget.style.border = '1px solid #888'}
+                onBlur={(e) => e.currentTarget.style.border = '1px solid #555'}
+              />
+            </label>
+
+            <label>
+              🎮 Schwierigkeit:
+              <select
+                value={settings.difficulty}
+                onChange={(e) => handleSettingChange('difficulty', e.target.value)}
+                style={{
+                  backgroundColor: '#2c2c2c',
+                  color: '#fff',
+                  border: '1px solid #555',
+                  padding: '0.5rem',
+                  borderRadius: '5px',
+                  width: '100%',
+                  outline: 'none',
+                  transition: 'border 0.2s',
+                }}
+                onFocus={(e) => e.currentTarget.style.border = '1px solid #888'}
+                onBlur={(e) => e.currentTarget.style.border = '1px solid #555'}
+              >
+                <option value="easy">Einfach</option>
+                <option value="normal">Normal</option>
+                <option value="hard">Schwer</option>
+              </select>
+            </label>
+
+            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                🧠 Tipps erlauben:
+              </span>
+
+              <div
+                onClick={() => isHost && handleSettingChange('allowHints', !settings.allowHints)}
+                style={{
+                  width: '50px',
+                  height: '32px',
+                  backgroundColor: settings.allowHints ? '#4caf50' : '#444',
+                  borderRadius: '4px', // 🔷 Eckig statt rund
+                  position: 'relative',
+                  cursor: isHost ? 'pointer' : 'not-allowed',
+                  transition: 'background-color 0.3s',
+                  opacity: isHost ? 1 : 0.5,
+                  border: '1px solid #666', // wie Input-Felder
+                }}
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '3px',
+                    left: settings.allowHints ? '26px' : '3px',
+                    width: '22px',
+                    height: '26px',
+                    borderRadius: '3px',
+                    backgroundColor: '#fff',
+                    transition: 'left 0.3s',
+                    boxShadow: 'inset 0 0 2px rgba(0,0,0,0.2)',
+                  }}
+                />
+              </div>
+            </label>
+
+
+          </div>
+        </div>
 
       {/* ✅ Chat-Modal */}
       {showChat && id && (

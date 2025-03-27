@@ -60,15 +60,10 @@ app.post("/lobby", async (req, res) => {
 app.post("/lobby/join", async (req, res) => {
   const { username, lobbyId, password } = req.body;
 
-  if (!username || !lobbyId) {
-    return res
-      .status(400)
-      .json({ error: "Username und Lobby-ID erforderlich" });
-  }
-
+  // 1. Hole die Lobby mit Passwort + max_players
   const { data: lobby, error: lobbyError } = await supabase
     .from("lobbys")
-    .select("*")
+    .select("id, password, max_players")
     .eq("id", lobbyId)
     .single();
 
@@ -76,20 +71,35 @@ app.post("/lobby/join", async (req, res) => {
     return res.status(404).json({ error: "Lobby nicht gefunden" });
   }
 
+  // 2. Prüfe Passwort, falls gesetzt
   if (lobby.password && lobby.password !== password) {
-    return res.status(403).json({ error: "Falsches Passwort" });
+    return res.status(401).json({ error: "Falsches Passwort" });
   }
 
-  const { error: joinError } = await supabase
+  // 3. Zähle, wie viele Spieler schon in der Lobby sind
+  const { count, error: countError } = await supabase
+    .from("players")
+    .select("*", { count: "exact", head: true })
+    .eq("lobby_id", lobbyId);
+
+  if (countError) {
+    return res.status(500).json({ error: "Fehler beim Zählen der Spieler" });
+  }
+
+  if (count !== null && count >= lobby.max_players) {
+    return res.status(400).json({ error: "Lobby ist voll" });
+  }
+
+  // 4. Füge den Spieler hinzu
+  const { error: insertError } = await supabase
     .from("players")
     .insert([{ username, lobby_id: lobbyId }]);
 
-  if (joinError) {
-    console.error("❌ Fehler beim Join:", joinError);
-    return res.status(500).json({ error: joinError.message });
+  if (insertError) {
+    return res.status(500).json({ error: "Fehler beim Beitritt zur Lobby" });
   }
 
-  res.json({ success: true });
+  res.status(200).json({ message: "Beigetreten" });
 });
 
 // ✅ Spieler aus Lobby entfernen
@@ -235,6 +245,63 @@ app.get("/drawings/:lobbyId", async (req, res) => {
   }
 
   res.json(data);
+});
+
+// PATCH /lobbys/:id/settings
+app.patch("/lobbys/:id/settings", async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+
+  const { error } = await supabase.from("lobbys").update(updates).eq("id", id);
+
+  if (error) {
+    console.error("Fehler beim Aktualisieren der Lobby-Einstellungen", error);
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.json({ success: true });
+});
+
+app.delete("/lobby/:lobbyId/kick/:username", async (req, res) => {
+  const { lobbyId, username } = req.params;
+
+  const { error } = await supabase
+    .from("players")
+    .delete()
+    .eq("lobby_id", lobbyId)
+    .eq("username", username);
+
+  if (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Fehler beim Kicken des Spielers" });
+  }
+
+  res.sendStatus(204);
+});
+
+app.delete("/lobby/:lobbyId/kick/:username", async (req, res) => {
+  const { lobbyId, username } = req.params;
+
+  // Spieler aus der Datenbank entfernen
+  const { error } = await supabase
+    .from("players")
+    .delete()
+    .match({ lobby_id: lobbyId, username });
+
+  if (error) {
+    return res.status(500).json({ error: "Fehler beim Kicken" });
+  }
+
+  // 🔴 Realtime-Broadcast an alle Clients in der Lobby
+  await supabase.channel(`lobby-${lobbyId}`).send({
+    type: "broadcast",
+    event: "player-kicked",
+    payload: {
+      username,
+    },
+  });
+
+  res.status(200).json({ message: `${username} wurde gekickt` });
 });
 
 const PORT = process.env.PORT || 3000;
