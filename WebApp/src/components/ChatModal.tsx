@@ -10,13 +10,12 @@ type Message = {
 };
 
 type ChatModalProps = {
-    lobbyId: string;
-    username: string;
-    onClose: () => void;
-    onNewMessage?: () => void; // ✅ Neu, optional
-  };
-  
-export default function ChatModal({ lobbyId, username, onClose, onNewMessage }: ChatModalProps) {
+  lobbyId: string;
+  username: string;
+  onClose: () => void;
+};
+
+export default function ChatModal({ lobbyId, username, onClose }: ChatModalProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -25,14 +24,12 @@ export default function ChatModal({ lobbyId, username, onClose, onNewMessage }: 
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Hole Nachrichten
   const fetchMessages = async () => {
     const res = await fetch(`http://localhost:3000/messages/${lobbyId}`);
     const data = await res.json();
     setMessages(data);
   };
 
-  // Neue Nachricht senden
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
@@ -43,9 +40,9 @@ export default function ChatModal({ lobbyId, username, onClose, onNewMessage }: 
     });
 
     setNewMessage("");
+    fetchMessages(); // ⬅️ Manuell neu laden nach dem Senden
   };
 
-  // Enter = Nachricht senden
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       sendMessage();
@@ -54,26 +51,28 @@ export default function ChatModal({ lobbyId, username, onClose, onNewMessage }: 
 
   useEffect(() => {
     fetchMessages();
-    scrollToBottom();
-
+  
     const channel = supabase
       .channel("chat-" + lobbyId)
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "messages",
-        filter: `lobby_id=eq.${lobbyId}`,
-      }, () => {
-        fetchMessages();
-        onNewMessage?.();
-        console.log("test")
-      })
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "messages",
+          filter: `lobby_id=eq.${lobbyId}`,
+        },
+        () => {
+          fetchMessages();
+        }
+      )
       .subscribe();
-
+  
     return () => {
       supabase.removeChannel(channel);
     };
   }, [lobbyId]);
+  
 
   useEffect(() => {
     scrollToBottom();
@@ -83,33 +82,36 @@ export default function ChatModal({ lobbyId, username, onClose, onNewMessage }: 
     <Modal title="💬 Lobby-Chat" onClose={onClose}>
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem", height: "400px", width: "100%", maxWidth: "500px" }}>
         <div style={{ flex: 1, overflowY: "auto", background: "#2c2c2c", padding: "1rem", borderRadius: "8px" }}>
-        {messages.map((msg) => {
+          {messages.map((msg) => {
             const isOwn = msg.username === username;
             return (
-                <div
+              <div
                 key={msg.id}
                 style={{
-                    display: 'flex',
-                    justifyContent: isOwn ? 'flex-end' : 'flex-start',
-                    marginBottom: '0.5rem',
+                  display: 'flex',
+                  justifyContent: isOwn ? 'flex-end' : 'flex-start',
+                  marginBottom: '0.5rem',
                 }}
-                >
+              >
                 <div
-                    style={{
+                  style={{
                     maxWidth: '70%',
                     padding: '0.5rem 1rem',
                     borderRadius: '1rem',
                     backgroundColor: isOwn ? '#4a90e2' : '#333',
                     color: '#fff',
                     textAlign: isOwn ? 'right' : 'left',
-                    }}
+                  }}
                 >
-                    {!isOwn && <strong>{msg.username}</strong>}<br />
-                    {msg.content}
+                    <div style={{ fontSize: '0.8rem', color: isOwn ? '#ddd' : '#aaa', marginBottom: '2px' }}>
+                     {isOwn ? `${username} (Du)` : msg.username}
+                    </div>
+
+                  {msg.content}
                 </div>
-                </div>
+              </div>
             );
-            })}
+          })}
           <div ref={messagesEndRef} />
         </div>
         <input

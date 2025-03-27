@@ -127,7 +127,18 @@ export default function LobbyView({ username }: { username: string }) {
       <h1>🏷️ Lobby: {lobby.name}</h1>
       <p>👑 Host: <strong>{lobby.host}</strong></p>
 
-      <table style={{ marginTop: '2rem', width: '100%', borderCollapse: 'collapse' }}>
+      <table
+        style={{
+          margin: '2rem auto',
+          width: '100%',
+          maxWidth: '600px',
+          borderCollapse: 'collapse',
+          backgroundColor: '#1a1a1a',
+          borderRadius: '8px',
+          overflow: 'hidden',
+          boxShadow: '0 0 10px rgba(0,0,0,0.4)',
+        }}
+      >
         <thead>
           <tr style={{ borderBottom: '2px solid #444' }}>
             <th style={thStyle}>🧑 Spielername</th>
@@ -221,7 +232,7 @@ export default function LobbyView({ username }: { username: string }) {
             onClick={handleLeaveLobby}
             style={{
               padding: '0.5rem 1rem',
-              backgroundColor: '#8b0000',
+              backgroundColor: '#b00020',
               color: '#fff',
               border: 'none',
               borderRadius: '4px',
@@ -239,9 +250,14 @@ export default function LobbyView({ username }: { username: string }) {
 const thStyle = {
   textAlign: 'left' as const,
   padding: '0.75rem 1rem',
-  background: '#1a1a1a',
+  background: '#222',
+  fontWeight: 'bold',
+  color: '#f0f0f0',
 };
+
 
 const tdStyle = {
   padding: '0.6rem 1rem',
+  textAlign: 'left' as const,
+  color: '#ddd',
 };
