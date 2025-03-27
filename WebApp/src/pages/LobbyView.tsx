@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Toast } from '../components/Toast';
 import ChatModal from '../components/ChatModal';
+import DrawingCanvas from "../components/DrawingCanvas";
 
 type Player = {
   id: string;
@@ -29,14 +30,13 @@ export default function LobbyView({ username }: { username: string }) {
   const [showChat, setShowChat] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
 
-  // Spieler- und Lobby-Daten laden
   useEffect(() => {
     if (!id) return;
 
     const fetchLobby = async () => {
-      const lobbyRes = await fetch(`http://localhost:3000/lobbys/${id}`);
-      const lobbyData = await lobbyRes.json();
-      setLobby(lobbyData);
+      const res = await fetch(`http://localhost:3000/lobbys/${id}`);
+      const data = await res.json();
+      setLobby(data);
     };
 
     const fetchPlayers = async () => {
@@ -58,9 +58,7 @@ export default function LobbyView({ username }: { username: string }) {
           table: 'players',
           filter: `lobby_id=eq.${id}`,
         },
-        () => {
-          fetchPlayers();
-        }
+        fetchPlayers
       )
       .subscribe();
 
@@ -69,11 +67,11 @@ export default function LobbyView({ username }: { username: string }) {
     };
   }, [id]);
 
-  // 🔴 Nachrichten-Indikator: hört auf neue Nachrichten, auch wenn Chat geschlossen ist
+  // Chat-Watching für roten Punkt
   useEffect(() => {
     if (!id) return;
 
-    const messageChannel = supabase
+    const channel = supabase
       .channel(`chat-watch-${id}`)
       .on(
         'postgres_changes',
@@ -85,33 +83,29 @@ export default function LobbyView({ username }: { username: string }) {
         },
         () => {
           if (!showChat) {
-            console.log("🔴 Neue Nachricht empfangen (Chat geschlossen)");
             setHasNewMessages(true);
+            console.log("🔴 Neue Nachricht (Chat geschlossen)");
           }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(messageChannel);
+      supabase.removeChannel(channel);
     };
   }, [id, showChat]);
 
   const handleLeaveLobby = async () => {
     if (!id || !username) return;
 
-    try {
-      await fetch(`http://localhost:3000/lobby/${id}/leave/${username}`, {
-        method: 'DELETE',
-      });
+    await fetch(`http://localhost:3000/lobby/${id}/leave/${username}`, {
+      method: 'DELETE',
+    });
 
-      navigate('/');
-    } catch (err) {
-      console.error('Fehler beim Verlassen der Lobby', err);
-    }
+    navigate('/');
   };
 
-  if (!lobby) return <p style={{ padding: '2rem', color: '#fff' }}>Lade Lobby...</p>;
+  if (!lobby) return <p style={{ color: '#fff', padding: '2rem' }}>Lade Lobby...</p>;
 
   return (
     <div
@@ -127,46 +121,38 @@ export default function LobbyView({ username }: { username: string }) {
       <h1>🏷️ Lobby: {lobby.name}</h1>
       <p>👑 Host: <strong>{lobby.host}</strong></p>
 
-      <table
-        style={{
-          margin: '2rem auto',
-          width: '100%',
-          maxWidth: '600px',
-          borderCollapse: 'collapse',
-          backgroundColor: '#1a1a1a',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: '0 0 10px rgba(0,0,0,0.4)',
-        }}
-      >
-        <thead>
-          <tr style={{ borderBottom: '2px solid #444' }}>
-            <th style={thStyle}>🧑 Spielername</th>
-            <th style={thStyle}>🎖️ Rolle</th>
-          </tr>
-        </thead>
-        <tbody>
-          {players.map((player) => (
-            <tr
-              key={player.id}
-              style={{
-                borderBottom: '1px solid #333',
-                backgroundColor: player.username === lobby.host ? '#1f1f1f' : 'inherit',
-              }}
-            >
-              <td style={{ ...tdStyle, fontWeight: player.username === lobby.host ? 'bold' : 'normal' }}>
-                {player.username}
-                {player.username === username && ' (Du)'}
-              </td>
-              <td style={tdStyle}>
-                {player.username === lobby.host ? '👑 Host' : '👤 Spieler'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* Spielerliste + Zeichenfläche */}
+      <div style={{ display: 'flex', gap: '2rem', marginTop: '2rem', height: 'calc(100vh - 300px)' }}>
+        {/* Spielerliste */}
+        <div style={{ width: '300px', flexShrink: 0 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#1a1a1a', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 0 10px rgba(0,0,0,0.4)' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid #444' }}>
+                <th style={thStyle}>🧑 Spielername</th>
+                <th style={thStyle}>🎖️ Rolle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((player) => (
+                <tr key={player.id} style={{ borderBottom: '1px solid #333', backgroundColor: player.username === lobby.host ? '#1f1f1f' : 'inherit' }}>
+                  <td style={{ ...tdStyle, fontWeight: player.username === lobby.host ? 'bold' : 'normal' }}>
+                    {player.username}
+                    {player.username === username && ' (Du)'}
+                  </td>
+                  <td style={tdStyle}>{player.username === lobby.host ? '👑 Host' : '👤 Spieler'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-      {/* ✅ Chat-Modal */}
+        {/* Zeichenfläche */}
+        <div style={{ flex: 1, backgroundColor: '#1a1a1a', borderRadius: '8px', padding: '1rem' }}>
+          <DrawingCanvas lobbyId={id} username={username} />
+        </div>
+      </div>
+
+      {/* Chat-Modal */}
       {showChat && id && (
         <ChatModal
           lobbyId={id}
@@ -175,12 +161,12 @@ export default function LobbyView({ username }: { username: string }) {
         />
       )}
 
-      {/* ✅ Toast */}
+      {/* Toast */}
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
 
-      {/* ✅ Sticky Footer mit Chat-Indikator */}
+      {/* Footer */}
       <div
         style={{
           position: 'fixed',
@@ -201,7 +187,7 @@ export default function LobbyView({ username }: { username: string }) {
           <button
             onClick={() => {
               setShowChat(true);
-              setHasNewMessages(false); // zurücksetzen beim Öffnen
+              setHasNewMessages(false);
             }}
             style={{
               backgroundColor: '#2e2e2e',
@@ -254,7 +240,6 @@ const thStyle = {
   fontWeight: 'bold',
   color: '#f0f0f0',
 };
-
 
 const tdStyle = {
   padding: '0.6rem 1rem',
