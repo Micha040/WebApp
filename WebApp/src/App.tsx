@@ -5,6 +5,8 @@ import { LobbyList } from './components/LobbyList';
 import { Modal } from './components/Modal';
 import { supabase } from './supabaseClient';
 import JoinLobbyModal from './components/JoinLobbyModal';
+import { Toast } from './components/Toast';
+
 
 function App() {
   const [username, setUsername] = useState('');
@@ -17,6 +19,9 @@ function App() {
   const [showModal, setShowModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [selectedLobby, setSelectedLobby] = useState<any | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+
 
   const navigate = useNavigate();
 
@@ -83,10 +88,12 @@ function App() {
       const data = await res.json();
   
       if (data.error) {
-        setError(data.error);
+        setToastMessage(data.error);
+        setToastType('error');
       } else {
         navigate(`/lobby/${lobbyId}`);
       }
+      
     } catch (err) {
       console.error(err);
       setError('Fehler beim Beitreten zur Lobby');
@@ -163,7 +170,9 @@ function App() {
                       onChange={(e) => setPassword(e.target.value)}
                     />
                   )}
+                 
                   <button onClick={handleCreateLobby}>✅ Lobby erstellen</button>
+                  
                 </div>
               </Modal>
             )}
@@ -183,13 +192,20 @@ function App() {
                 console.log("selectedLobby", selectedLobby);
 
                 setUsername(enteredUsername); // speichern für später
-                directJoin(selectedLobby, pw, enteredUsername);
+                directJoin(selectedLobby.id, pw, enteredUsername);
                 setShowJoinModal(false);
               }}
               
             />
             
             )}
+            {toastMessage && (
+                    <Toast
+                    message={toastMessage}
+                    type={toastType}
+                    onClose={() => setToastMessage(null)}
+                    />
+                  )}
           </div>
         }
       />

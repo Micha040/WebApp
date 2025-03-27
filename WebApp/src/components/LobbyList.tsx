@@ -5,12 +5,8 @@ type Lobby = {
     created_at?: string;
   };
   
-  type LobbyListProps = {
-    lobbys: Lobby[];
-    onJoin: (id: string) => void;
-  };
   
-  export function LobbyList({ lobbys, onJoin }: LobbyListProps) {
+  export function LobbyList({ lobbys, onJoin }: { lobbys: any[], onJoin: (lobby: any) => void }) {
     if (lobbys.length === 0) {
       return <p>Keine Lobbys vorhanden.</p>;
     }
@@ -38,7 +34,7 @@ type Lobby = {
                 </td>
                 <td style={tdStyle}>
                   <button
-                    onClick={() => onJoin(lobby.id)}
+                    onClick={() => onJoin(lobby)}
                     style={{
                       padding: '0.3rem 0.6rem',
                       fontSize: '0.9rem',
