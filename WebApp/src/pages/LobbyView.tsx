@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from "../supabaseClient";
-
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
+import { Toast } from '../components/Toast';
 
 type Player = {
   id: string;
@@ -18,8 +18,13 @@ type Lobby = {
 export default function LobbyView({ username }: { username: string }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [players, setPlayers] = useState<Player[]>([]);
   const [lobby, setLobby] = useState<Lobby | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(
+    location.state?.successMessage || null
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -39,7 +44,7 @@ export default function LobbyView({ username }: { username: string }) {
     fetchLobby();
     fetchPlayers();
 
-    // 📡 Realtime Subscription
+    // Realtime-Update
     const channel = supabase
       .channel(`players-in-lobby-${id}`)
       .on(
@@ -51,7 +56,7 @@ export default function LobbyView({ username }: { username: string }) {
           filter: `lobby_id=eq.${id}`,
         },
         () => {
-          fetchPlayers(); // Spielerliste neu laden
+          fetchPlayers();
         }
       )
       .subscribe();
@@ -124,6 +129,11 @@ export default function LobbyView({ username }: { username: string }) {
           ))}
         </tbody>
       </table>
+
+      {/* ✅ Toast */}
+      {toastMessage && (
+        <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+      )}
     </div>
   );
 }
