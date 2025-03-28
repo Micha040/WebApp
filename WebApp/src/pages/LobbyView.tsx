@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Toast } from '../components/Toast';
 import ChatModal from '../components/ChatModal';
+import SkinEditor from '../components/SkinEditor';
 
 type Player = {
   id: string;
@@ -36,7 +37,18 @@ export default function LobbyView({ username }: { username: string }) {
     allowHints: true,
   });
 
-  const isHost = username === lobby?.host;
+  const [host, setHost] = useState<string | null>(null);
+  const isHost = host !== null && username === host;
+
+
+  useEffect(() => {
+    if (!id) return;
+  
+    fetch(`http://localhost:3000/lobby/${id}/host`)
+      .then((res) => res.json())
+      .then((data) => setHost(data.host))
+      .catch((err) => console.error("Fehler beim Laden des Hosts", err));
+  }, [id]);
 
   const fetchPlayers = async () => {
     const res = await fetch(`http://localhost:3000/lobbys/${id}/players`);
@@ -229,9 +241,10 @@ export default function LobbyView({ username }: { username: string }) {
         padding: '2rem',
         paddingBottom: '6rem',
         color: '#fff',
+        width: '100%',
         fontFamily: 'sans-serif',
         minHeight: '100vh',
-        backgroundColor: '#121212',
+        backgroundColor: '#f82e03', //121212
       }}
     >
       <h1>Lobby: {lobby.name}</h1>
@@ -302,7 +315,8 @@ export default function LobbyView({ username }: { username: string }) {
           ))}
         </tbody>
       </table>
-
+      
+      <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
       {/* Einstellungen */}
       <div style={{
     backgroundColor: '#1a1a1a',
@@ -418,7 +432,14 @@ export default function LobbyView({ username }: { username: string }) {
 
 
           </div>
+          
         </div>
+
+          {/* Skin-Editor */}
+           <SkinEditor lobbyId={id!} username={username} isHost={isHost} />
+        </div>
+
+        
 
       {/* ✅ Chat-Modal */}
       {showChat && id && (
@@ -441,7 +462,7 @@ export default function LobbyView({ username }: { username: string }) {
           bottom: 0,
           left: 0,
           width: '100%',
-          backgroundColor: '#1e1e1e',
+          backgroundColor: '#4ff803', //1e1e1e  
           borderTop: '1px solid #333',
           padding: '1rem 2rem',
           display: 'flex',
@@ -491,6 +512,7 @@ export default function LobbyView({ username }: { username: string }) {
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
+              marginRight: '3rem',
             }}
           >
             🔙 Zurück zur Übersicht
@@ -498,7 +520,9 @@ export default function LobbyView({ username }: { username: string }) {
         </div>
       </div>
     </div>
+    
   );
+  
 }
 
 const thStyle = {

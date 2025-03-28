@@ -265,23 +265,6 @@ app.patch("/lobbys/:id/settings", async (req, res) => {
 app.delete("/lobby/:lobbyId/kick/:username", async (req, res) => {
   const { lobbyId, username } = req.params;
 
-  const { error } = await supabase
-    .from("players")
-    .delete()
-    .eq("lobby_id", lobbyId)
-    .eq("username", username);
-
-  if (error) {
-    console.error(error);
-    return res.status(500).json({ error: "Fehler beim Kicken des Spielers" });
-  }
-
-  res.sendStatus(204);
-});
-
-app.delete("/lobby/:lobbyId/kick/:username", async (req, res) => {
-  const { lobbyId, username } = req.params;
-
   // Spieler aus der Datenbank entfernen
   const { error } = await supabase
     .from("players")
@@ -302,6 +285,22 @@ app.delete("/lobby/:lobbyId/kick/:username", async (req, res) => {
   });
 
   res.status(200).json({ message: `${username} wurde gekickt` });
+});
+
+app.get("/lobby/:lobbyId/host", async (req, res) => {
+  const { lobbyId } = req.params;
+
+  const { data, error } = await supabase
+    .from("lobbys")
+    .select("host")
+    .eq("id", lobbyId)
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: "Host konnte nicht geladen werden" });
+  }
+
+  res.json({ host: data.host });
 });
 
 const PORT = process.env.PORT || 3000;
