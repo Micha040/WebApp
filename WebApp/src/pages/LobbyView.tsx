@@ -244,203 +244,231 @@ export default function LobbyView({ username }: { username: string }) {
         width: '100%',
         fontFamily: 'sans-serif',
         minHeight: '100vh',
-        backgroundColor: '#f82e03', //121212
+        backgroundColor: '#121212', //121212
       }}
     >
       <h1>Lobby: {lobby.name}</h1>
       <p>👑 Host: <strong>{lobby.host}</strong></p>
-
-      <table
+  
+      <div
         style={{
-          margin: '2rem auto',
-          width: '100%',
-          maxWidth: '600px',
-          borderCollapse: 'collapse',
-          backgroundColor: '#1a1a1a',
-          borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: '0 0 10px rgba(0,0,0,0.4)',
+          display: 'grid',
+          gridTemplateColumns: '1fr 2fr',
+          gap: '2rem',
+          marginTop: '2rem',
+          alignItems: 'start',
         }}
       >
-        <thead>
-          <tr style={{ borderBottom: '2px solid #444' }}>
-            <th style={thStyle}>🧑 Spielername</th>
-            <th style={thStyle}>🎖️ Rolle</th>
-          </tr>
-        </thead>
-        <tbody>
-        {players.map((player) => (
-            <tr
-              key={player.id}
+        {/* Linke Spalte */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Spielertabelle */}
+          <table
+            style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              backgroundColor: '#1a1a1a',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              boxShadow: '0 0 10px rgba(0,0,0,0.4)',
+              maxHeight: '300px',
+              minHeight: '300px',
+              display: 'block',
+              overflowY: 'auto',
+            }}
+          >
+            <thead style={{ position: 'sticky', top: 0, backgroundColor: '#222' }}>
+              <tr>
+                <th style={thStyle}>🧑 Spielername</th>
+                <th style={thStyle}>🎖️ Rolle</th>
+                {isHost && <th style={thStyle}>Aktion</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {players.map((player) => (
+                <tr
+                  key={player.id}
+                  style={{
+                    borderBottom: '1px solid #333',
+                    backgroundColor: player.username === lobby.host ? '#1f1f1f' : 'inherit',
+                  }}
+                >
+                  <td style={{ ...tdStyle, fontWeight: player.username === lobby.host ? 'bold' : 'normal' }}>
+                    {player.username}
+                    {player.username === username && ' (Du)'}
+                  </td>
+                  <td style={tdStyle}>
+                    {player.username === lobby.host ? '👑 Host' : '👤 Spieler'}
+                  </td>
+                  {isHost && (
+                    <td style={tdStyle}>
+                      {player.username !== username && (
+                        <button
+                          onClick={() => {
+                            const confirmKick = confirm(`Willst du ${player.username} wirklich kicken?`);
+                            if (!confirmKick) return;
+                            kickPlayer(player.username);
+                          }}
+                          style={{
+                            backgroundColor: '#8b0000',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            padding: '0.3rem 0.6rem',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                          }}
+                        >
+                          🚫 Kick
+                        </button>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+  
+          {/* Einstellungen */}
+          <div
+            style={{
+              backgroundColor: '#1a1a1a',
+              padding: '1.5rem',
+              borderRadius: '10px',
+              boxShadow: '0 0 10px rgba(0,0,0,0.3)',
+              maxWidth: '100%',
+            }}
+          >
+            <h2>⚙️ Einstellungen</h2>
+  
+            <div
               style={{
-                borderBottom: '1px solid #333',
-                backgroundColor: player.username === lobby.host ? '#1f1f1f' : 'inherit',
+                opacity: isHost ? 1 : 0.5,
+                pointerEvents: isHost ? 'auto' : 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                maxWidth: '400px',
               }}
             >
-              <td style={{ ...tdStyle, fontWeight: player.username === lobby.host ? 'bold' : 'normal' }}>
-                {player.username}
-                {player.username === username && ' (Du)'}
-              </td>
-              <td style={tdStyle}>
-                {player.username === lobby.host ? '👑 Host' : '👤 Spieler'}
-              </td>
-
-              {/* Kick-Button nur sichtbar für Host und nicht bei sich selbst */}
-              {isHost && (
-                <td style={tdStyle}>
-                  {player.username !== username && (
-                    <button
-                    onClick={() => {
-                      const confirmKick = confirm(`Willst du ${player.username} wirklich kicken?`);
-                      if (!confirmKick) return;
-                    
-                      kickPlayer(player.username);
-                    }}                    
-                      style={{
-                        backgroundColor: '#8b0000',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '0.3rem 0.6rem',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                      }}
-                    >
-                      🚫 Kick
-                    </button>
-                  )}
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}>
-      {/* Einstellungen */}
-      <div style={{
-    backgroundColor: '#1a1a1a',
-    padding: '1.5rem',
-    borderRadius: '10px',
-    boxShadow: '0 0 10px rgba(0,0,0,0.3)',
-    marginTop: '2rem',
-    maxWidth: '500px',
-  }}>
-          <h2>⚙️ Einstellungen</h2>
-
-          <div style={{ opacity: isHost ? 1 : 0.5, pointerEvents: isHost ? 'auto' : 'none', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '400px' }}>
-            <label>
-              ⏱️ Rundenzeit (Sekunden):
-              <input
-                type="number"
-                value={settings.roundTime}
-                onChange={(e) => handleSettingChange('roundTime', Number(e.target.value))}
-                style={{
-                  backgroundColor: '#2c2c2c',
-                  color: '#fff',
-                  border: '1px solid #555',
-                  padding: '0.5rem',
-                  borderRadius: '5px',
-                  width: '100%',
-                  outline: 'none',
-                  transition: 'border 0.2s',
-                }}
-                onFocus={(e) => e.currentTarget.style.border = '1px solid #888'}
-                onBlur={(e) => e.currentTarget.style.border = '1px solid #555'}
-              />
-            </label>
-
-            <label>
-              👥 Max. Spieler:
-              <input
-                type="number"
-                value={settings.maxPlayers}
-                onChange={(e) => handleSettingChange('maxPlayers', Number(e.target.value))}
-                style={{
-                  backgroundColor: '#2c2c2c',
-                  color: '#fff',
-                  border: '1px solid #555',
-                  padding: '0.5rem',
-                  borderRadius: '5px',
-                  width: '100%',
-                  outline: 'none',
-                  transition: 'border 0.2s',
-                }}
-                onFocus={(e) => e.currentTarget.style.border = '1px solid #888'}
-                onBlur={(e) => e.currentTarget.style.border = '1px solid #555'}
-              />
-            </label>
-
-            <label>
-              🎮 Schwierigkeit:
-              <select
-                value={settings.difficulty}
-                onChange={(e) => handleSettingChange('difficulty', e.target.value)}
-                style={{
-                  backgroundColor: '#2c2c2c',
-                  color: '#fff',
-                  border: '1px solid #555',
-                  padding: '0.5rem',
-                  borderRadius: '5px',
-                  width: '100%',
-                  outline: 'none',
-                  transition: 'border 0.2s',
-                }}
-                onFocus={(e) => e.currentTarget.style.border = '1px solid #888'}
-                onBlur={(e) => e.currentTarget.style.border = '1px solid #555'}
-              >
-                <option value="easy">Einfach</option>
-                <option value="normal">Normal</option>
-                <option value="hard">Schwer</option>
-              </select>
-            </label>
-
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                🧠 Tipps erlauben:
-              </span>
-
-              <div
-                onClick={() => isHost && handleSettingChange('allowHints', !settings.allowHints)}
-                style={{
-                  width: '50px',
-                  height: '32px',
-                  backgroundColor: settings.allowHints ? '#4caf50' : '#444',
-                  borderRadius: '4px', // 🔷 Eckig statt rund
-                  position: 'relative',
-                  cursor: isHost ? 'pointer' : 'not-allowed',
-                  transition: 'background-color 0.3s',
-                  opacity: isHost ? 1 : 0.5,
-                  border: '1px solid #666', // wie Input-Felder
-                }}
-              >
-                <div
+              <label>
+                ⏱️ Rundenzeit (Sekunden):
+                <input
+                  type="number"
+                  value={settings.roundTime}
+                  onChange={(e) => handleSettingChange('roundTime', Number(e.target.value))}
                   style={{
-                    position: 'absolute',
-                    top: '3px',
-                    left: settings.allowHints ? '26px' : '3px',
-                    width: '22px',
-                    height: '26px',
-                    borderRadius: '3px',
-                    backgroundColor: '#fff',
-                    transition: 'left 0.3s',
-                    boxShadow: 'inset 0 0 2px rgba(0,0,0,0.2)',
+                    backgroundColor: '#2c2c2c',
+                    color: '#fff',
+                    border: '1px solid #555',
+                    padding: '0.5rem',
+                    borderRadius: '5px',
+                    width: '100%',
+                    outline: 'none',
+                    transition: 'border 0.2s',
                   }}
+                  onFocus={(e) => e.currentTarget.style.border = '1px solid #888'}
+                  onBlur={(e) => e.currentTarget.style.border = '1px solid #555'}
                 />
-              </div>
-            </label>
-
-
+              </label>
+  
+              <label>
+                👥 Max. Spieler:
+                <input
+                  type="number"
+                  value={settings.maxPlayers}
+                  onChange={(e) => handleSettingChange('maxPlayers', Number(e.target.value))}
+                  style={{
+                    backgroundColor: '#2c2c2c',
+                    color: '#fff',
+                    border: '1px solid #555',
+                    padding: '0.5rem',
+                    borderRadius: '5px',
+                    width: '100%',
+                    outline: 'none',
+                    transition: 'border 0.2s',
+                  }}
+                  onFocus={(e) => e.currentTarget.style.border = '1px solid #888'}
+                  onBlur={(e) => e.currentTarget.style.border = '1px solid #555'}
+                />
+              </label>
+  
+              <label>
+                🎮 Schwierigkeit:
+                <select
+                  value={settings.difficulty}
+                  onChange={(e) => handleSettingChange('difficulty', e.target.value)}
+                  style={{
+                    backgroundColor: '#2c2c2c',
+                    color: '#fff',
+                    border: '1px solid #555',
+                    padding: '0.5rem',
+                    borderRadius: '5px',
+                    width: '100%',
+                    outline: 'none',
+                    transition: 'border 0.2s',
+                  }}
+                  onFocus={(e) => e.currentTarget.style.border = '1px solid #888'}
+                  onBlur={(e) => e.currentTarget.style.border = '1px solid #555'}
+                >
+                  <option value="easy">Einfach</option>
+                  <option value="normal">Normal</option>
+                  <option value="hard">Schwer</option>
+                </select>
+              </label>
+  
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  🧠 Tipps erlauben:
+                </span>
+                <div
+                  onClick={() => isHost && handleSettingChange('allowHints', !settings.allowHints)}
+                  style={{
+                    width: '50px',
+                    height: '32px',
+                    backgroundColor: settings.allowHints ? '#4caf50' : '#444',
+                    borderRadius: '4px',
+                    position: 'relative',
+                    cursor: isHost ? 'pointer' : 'not-allowed',
+                    transition: 'background-color 0.3s',
+                    opacity: isHost ? 1 : 0.5,
+                    border: '1px solid #666',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: settings.allowHints ? '26px' : '3px',
+                      width: '22px',
+                      height: '26px',
+                      borderRadius: '3px',
+                      backgroundColor: '#fff',
+                      transition: 'left 0.3s',
+                      boxShadow: 'inset 0 0 2px rgba(0,0,0,0.2)',
+                    }}
+                  />
+                </div>
+              </label>
+            </div>
           </div>
-          
         </div>
-
-          {/* Skin-Editor */}
-           <SkinEditor lobbyId={id!} username={username} isHost={isHost} />
+  
+        {/* Rechte Spalte: Skin Editor */}
+        <div>
+          <div
+            style={{
+              backgroundColor: '#1a1a1a',
+              padding: '1.5rem',
+              borderRadius: '10px',
+              boxShadow: '0 0 10px rgba(0,0,0,0.3)',
+            }}
+          >
+            <h2>🧍 Skin-Editor</h2>
+            <SkinEditor lobbyId={id!} username={username} isHost={isHost} />
+          </div>
         </div>
-
-        
-
+      </div>
+  
       {/* ✅ Chat-Modal */}
       {showChat && id && (
         <ChatModal
@@ -449,12 +477,12 @@ export default function LobbyView({ username }: { username: string }) {
           onClose={() => setShowChat(false)}
         />
       )}
-
+  
       {/* ✅ Toast */}
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
-
+  
       {/* ✅ Sticky Footer mit Chat-Indikator */}
       <div
         style={{
@@ -462,7 +490,7 @@ export default function LobbyView({ username }: { username: string }) {
           bottom: 0,
           left: 0,
           width: '100%',
-          backgroundColor: '#4ff803', //1e1e1e  
+          backgroundColor: '#1e1e1e', //1e1e1e
           borderTop: '1px solid #333',
           padding: '1rem 2rem',
           display: 'flex',
@@ -476,7 +504,7 @@ export default function LobbyView({ username }: { username: string }) {
           <button
             onClick={() => {
               setShowChat(true);
-              setHasNewMessages(false); // zurücksetzen beim Öffnen
+              setHasNewMessages(false);
             }}
             style={{
               backgroundColor: '#2e2e2e',
@@ -520,9 +548,7 @@ export default function LobbyView({ username }: { username: string }) {
         </div>
       </div>
     </div>
-    
   );
-  
 }
 
 const thStyle = {

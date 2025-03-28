@@ -91,12 +91,49 @@ app.post("/lobby/join", async (req, res) => {
   }
 
   // 4. Füge den Spieler hinzu
-  const { error: insertError } = await supabase
+  const { data: insertedPlayer, error: insertError } = await supabase
     .from("players")
-    .insert([{ username, lobby_id: lobbyId }]);
+    .insert([{ username, lobby_id: lobbyId }])
+    .select("id") // wir brauchen die id für die Skin-Verknüpfung
+    .single();
 
   if (insertError) {
     return res.status(500).json({ error: "Fehler beim Beitritt zur Lobby" });
+  }
+
+  const playerId = insertedPlayer.id;
+
+  // 5. Prüfe, ob bereits ein Skin für diesen Spieler existiert
+  const { data: existingSkin, error: skinCheckError } = await supabase
+    .from("skins")
+    .select("id")
+    .eq("player_id", playerId)
+    .maybeSingle();
+
+  if (skinCheckError) {
+    console.error("❌ Fehler beim Skin-Check:", skinCheckError.message);
+    // Fehler loggen, aber Spieler trotzdem reinlassen
+  }
+
+  // 6. Wenn kein Skin vorhanden, neuen Standard-Skin einfügen
+  if (!existingSkin) {
+    const { error: skinInsertError } = await supabase.from("skins").insert([
+      {
+        player_id: playerId,
+        lobby_id: lobbyId, // wichtig: für spätere Queries in dieser Lobby
+        eyes: "default",
+        mouth: "default",
+        weapon: "none",
+      },
+    ]);
+
+    if (skinInsertError) {
+      console.error(
+        "❌ Fehler beim Erstellen des Skins:",
+        skinInsertError.message
+      );
+      // ebenfalls nicht blockieren
+    }
   }
 
   res.status(200).json({ message: "Beigetreten" });

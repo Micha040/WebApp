@@ -1,83 +1,93 @@
 import { useState } from 'react';
 
-type SkinEditorProps = {
+const hatOptions = ['keine', 'basecap', 'cowboyhut'];
+const topOptions = ['tshirt', 'hoodie', 'anzug'];
+const bottomOptions = ['jeans', 'shorts', 'hose'];
+const shoeOptions = ['sneaker', 'stiefel', 'sandalen'];
+
+export default function SkinEditor({
+  lobbyId,
+  username,
+  isHost,
+}: {
   lobbyId: string;
   username: string;
   isHost: boolean;
-};
+}) {
+  const [hatIndex, setHatIndex] = useState(0);
+  const [topIndex, setTopIndex] = useState(0);
+  const [bottomIndex, setBottomIndex] = useState(0);
+  const [shoeIndex, setShoeIndex] = useState(0);
 
-export default function SkinEditor({ lobbyId, username, isHost }: SkinEditorProps) {
-  const [skin, setSkin] = useState({
-    hat: 'none',
-    top: 'tshirt',
-    bottom: 'jeans',
-    shoes: 'sneakers_white',
-  });
-
-  const updateSkinPart = async (part: string, value: string) => {
-    setSkin((prev) => ({ ...prev, [part]: value }));
-
-    await fetch(`http://localhost:3000/lobby/${lobbyId}/skin/${username}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ part, value }),
-    });
-  };
+  const cycle = (arr: string[], index: number, direction: number) =>
+    (index + direction + arr.length) % arr.length;
 
   return (
-    <div style={{
-      backgroundColor: '#1a1a1a',
-      padding: '1.5rem',
-      borderRadius: '10px',
-      boxShadow: '0 0 10px rgba(0,0,0,0.3)',
-      maxWidth: '500px'
-    }}>
-      <h2>🧍 Skin-Editor</h2>
+    <div style={{ textAlign: 'center', color: '#fff' }}>
+      <h3>🧍 Skin-Vorschau</h3>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'auto 1fr auto',
+          gap: '1rem',
+          alignItems: 'center',
+          marginTop: '1rem',
+        }}
+      >
+        {/* Linke Pfeile */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <button onClick={() => setHatIndex(cycle(hatOptions, hatIndex, -1))}>◀️</button>
+          <button onClick={() => setTopIndex(cycle(topOptions, topIndex, -1))}>◀️</button>
+          <button onClick={() => setBottomIndex(cycle(bottomOptions, bottomIndex, -1))}>◀️</button>
+          <button onClick={() => setShoeIndex(cycle(shoeOptions, shoeIndex, -1))}>◀️</button>
+        </div>
 
-      <label>
-        🧢 Mütze:
-        <select
-          value={skin.hat}
-          onChange={(e) => updateSkinPart('hat', e.target.value)}
+        {/* Vorschau-Bereich */}
+        <div
+          style={{
+            position: 'relative',
+            width: '150px',
+            height: '200px',
+            margin: '0 auto',
+          }}
         >
-          <option value="none">Keine</option>
-          <option value="cap_red">Rote Kappe</option>
-          <option value="beanie">Mütze</option>
-        </select>
-      </label>
+          <img
+            src="/skins/base.png"
+            alt="base"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+          />
+          {hatOptions[hatIndex] !== 'keine' && (
+            <img
+              src={`/skins/hat/${hatOptions[hatIndex]}.png`}
+              alt="hat"
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+            />
+          )}
+          <img
+            src={`/skins/top/${topOptions[topIndex]}.png`}
+            alt="top"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+          />
+          <img
+            src={`/skins/bottom/${bottomOptions[bottomIndex]}.png`}
+            alt="bottom"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+          />
+          <img
+            src={`/skins/shoes/${shoeOptions[shoeIndex]}.png`}
+            alt="shoes"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+          />
+        </div>
 
-      <label>
-        👕 Oberteil:
-        <select
-          value={skin.top}
-          onChange={(e) => updateSkinPart('top', e.target.value)}
-        >
-          <option value="tshirt">T-Shirt</option>
-          <option value="hoodie_blue">Blauer Hoodie</option>
-        </select>
-      </label>
-
-      <label>
-        👖 Unterteil:
-        <select
-          value={skin.bottom}
-          onChange={(e) => updateSkinPart('bottom', e.target.value)}
-        >
-          <option value="jeans">Jeans</option>
-          <option value="shorts">Shorts</option>
-        </select>
-      </label>
-
-      <label>
-        👟 Schuhe:
-        <select
-          value={skin.shoes}
-          onChange={(e) => updateSkinPart('shoes', e.target.value)}
-        >
-          <option value="sneakers_white">Weiße Sneaker</option>
-          <option value="boots">Stiefel</option>
-        </select>
-      </label>
+        {/* Rechte Pfeile */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <button onClick={() => setHatIndex(cycle(hatOptions, hatIndex, 1))}>▶️</button>
+          <button onClick={() => setTopIndex(cycle(topOptions, topIndex, 1))}>▶️</button>
+          <button onClick={() => setBottomIndex(cycle(bottomOptions, bottomIndex, 1))}>▶️</button>
+          <button onClick={() => setShoeIndex(cycle(shoeOptions, shoeIndex, 1))}>▶️</button>
+        </div>
+      </div>
     </div>
   );
 }
