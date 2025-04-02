@@ -1,6 +1,6 @@
-type Skin = {
-  ball: string;
-  eyes: string;
-  mouth: string;
-  top: string;
-};
+// type Skin = {
+//   ball: string;
+//   eyes: string;
+//   mouth: string;
+//   top: string;
+// };

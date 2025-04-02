@@ -1,9 +1,9 @@
-type Lobby = {
-    id: string;
-    name: string;
-    host: string;
-    created_at?: string;
-  };
+// type Lobby = {
+//     id: string;
+//     name: string;
+//     host: string;
+//     created_at?: string;
+//   };
   
   
   export function LobbyList({ lobbys, onJoin }: { lobbys: any[], onJoin: (lobby: any) => void }) {

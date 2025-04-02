@@ -31,6 +31,7 @@ export default function SkinEditor({
   const [topIndex, setTopIndex] = useState(0);
 
   const lastSkinRef = useRef<string>('');
+  console.log(lobbyId, username, isHost)
 
   const cycle = (arr: string[], index: number, direction: number) =>
     (index + direction + arr.length) % arr.length;

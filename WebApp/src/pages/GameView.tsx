@@ -24,9 +24,11 @@ const GameView: React.FC = () => {
       setUsername(storedUsername);
       // Sende "join", damit der Server den Spieler registriert
       socket.emit("join", { username: storedUsername });
+      console.log(id)
     }
   }, []);
 
+  //.
   // Empfange Updates der Spielerpositionen vom Server
   useEffect(() => {
     socket.on("playersUpdate", (data: Record<string, Player>) => {

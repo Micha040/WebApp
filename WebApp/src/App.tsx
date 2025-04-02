@@ -25,6 +25,7 @@ function App() {
 
 
   const navigate = useNavigate();
+  console.log(lobbyId)
 
   const handleCreateLobby = async () => {
     if (!username.trim() || !lobbyName.trim()) {
