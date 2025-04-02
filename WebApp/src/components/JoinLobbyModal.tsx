@@ -6,11 +6,14 @@ type Props = {
   username: string;
   onClose: () => void;
   onSubmit: (username: string, password: string) => void;
+  
 };
 
 export default function JoinLobbyModal({ lobby, username: initialUsername, onClose, onSubmit }: Props) {
   const [username, setUsername] = useState(initialUsername || '');
   const [password, setPassword] = useState('');
+  localStorage.setItem("username", username);
+
 
   return (
     <Modal title={`🔒 Lobby "${lobby.name}" beitreten`} onClose={onClose}>

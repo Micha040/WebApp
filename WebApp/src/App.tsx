@@ -43,6 +43,8 @@ function App() {
         }),
       });
 
+      localStorage.setItem("username", username);
+      
       const data = await res.json();
 
       if (data.error) {
