@@ -442,7 +442,12 @@ const io = new Server(server, {
 // ✅ Spielerliste nach socket.id
 const connectedPlayers: Record<
   string,
-  { x: number; y: number; username: string }
+  {
+    x: number;
+    y: number;
+    username: string;
+    lastInput?: string; // optional
+  }
 > = {};
 
 io.on("connection", (socket) => {
@@ -454,7 +459,7 @@ io.on("connection", (socket) => {
       y: 100 + Math.random() * 200,
       username: data.username,
     };
-
+    console.log("📡 Spieler gejoint:", data.username);
     io.emit("playersUpdate", connectedPlayers);
   });
 
@@ -478,7 +483,7 @@ io.on("connection", (socket) => {
         player.x += speed;
         break;
     }
-
+    player.lastInput = direction;
     io.emit("playersUpdate", connectedPlayers);
   });
 
