@@ -368,7 +368,6 @@ app.post("/lobby/start", async (req, res) => {
   console.log("📥 Empfangen:", { lobbyId, username });
   console.log("🔧 Skin-Daten empfangen:", JSON.stringify(skin, null, 2));
 
-  // Spieler finden
   const { data: player, error: playerError } = await supabase
     .from("players")
     .select("id")
@@ -381,21 +380,8 @@ app.post("/lobby/start", async (req, res) => {
     return res.status(404).json({ error: "Spieler nicht gefunden" });
   }
 
-  await supabase.channel(`lobby-${lobbyId}`).send({
-    type: "broadcast",
-    event: "game-started",
-    payload: {
-      message: "Das Spiel wurde gestartet",
-      lobbyId,
-    },
-  });
-
-  console.log("✅ Spieler gefunden:", player.id);
-
-  // Skin-Daten extrahieren
   const { ball, eyes, mouth, top } = skin;
 
-  // Skin aktualisieren
   const { error: updateError } = await supabase
     .from("skins")
     .update({ ball, eyes, mouth, top })
@@ -408,7 +394,29 @@ app.post("/lobby/start", async (req, res) => {
       .json({ error: "Skin konnte nicht aktualisiert werden" });
   }
 
-  console.log("✅ Skin wurde aktualisiert!");
+  // ✅ NEU: Spiel in Tabelle eintragen
+  const { error: gameError } = await supabase.from("games").insert([
+    {
+      lobby_id: lobbyId,
+      status: "active",
+      start_time: new Date().toISOString(),
+    },
+  ]);
+
+  if (gameError) {
+    console.error("❌ Fehler beim Erstellen des Spiels:", gameError.message);
+    return res
+      .status(500)
+      .json({ error: "Spiel konnte nicht gestartet werden" });
+  }
+
+  console.log("✅ Spiel erstellt + Skin gespeichert!");
+  await supabase.channel(`lobby-${lobbyId}`).send({
+    type: "broadcast",
+    event: "game-started",
+    payload: { message: "Das Spiel wurde gestartet", lobbyId },
+  });
+
   res
     .status(200)
     .json({ message: "Spiel wurde gestartet und Skin gespeichert" });
@@ -442,24 +450,24 @@ const io = new Server(server, {
 // ✅ Spielerliste nach socket.id
 const connectedPlayers: Record<
   string,
-  {
-    x: number;
-    y: number;
-    username: string;
-    lastInput?: string; // optional
-  }
+  { x: number; y: number; username: string; lastInput?: string }
 > = {};
 
 io.on("connection", (socket) => {
+  console.log("🟢 Neue Socket-Verbindung:", socket.id); // ← ganz oben
   console.log(`🟢 Spieler verbunden: ${socket.id}`);
 
+  socket.onAny((event, ...args) => {
+    console.log(`📡 [SOCKET EVENT] ${event}`, args);
+  });
+
   socket.on("join", (data: { username: string }) => {
+    console.log("📡 Spieler gejoint (empfangen):", data.username);
     connectedPlayers[socket.id] = {
       x: 100 + Math.random() * 200,
       y: 100 + Math.random() * 200,
       username: data.username,
     };
-    console.log("📡 Spieler gejoint:", data.username);
     io.emit("playersUpdate", connectedPlayers);
   });
 
