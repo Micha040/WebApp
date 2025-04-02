@@ -1,16 +1,22 @@
-import { useParams } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
 
+export default function GameView() {
+  const [lastKey, setLastKey] = useState<string | null>(null);
 
-export default function GameView({ username }: { username: string }) {
-    const { id } = useParams();
-  
-    return (
-      <div style={{ color: "#fff", padding: "2rem" }}>
-        <h1>🎮 Spiel läuft!</h1>
-        <p>Spiel-ID: {id}</p>
-        <p>Du bist: {username}</p>
-      </div>
-    );
-  }
-  
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      setLastKey(e.key);
+      console.log("🎮 Taste gedrückt:", e.key);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  return (
+    <div style={{ color: "white", padding: "2rem" }}>
+      <h2>🎮 Game läuft</h2>
+      <p>Letzte gedrückte Taste: {lastKey}</p>
+    </div>
+  );
+}

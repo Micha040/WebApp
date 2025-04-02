@@ -414,7 +414,81 @@ app.post("/lobby/start", async (req, res) => {
     .json({ message: "Spiel wurde gestartet und Skin gespeichert" });
 });
 
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+import http from "http";
+import { Server } from "socket.io";
+
+app.use(cors());
+app.use(express.json());
+
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+  },
+});
+
+// ✅ Spielerliste nach socket.id
+const connectedPlayers: Record<
+  string,
+  { x: number; y: number; username: string }
+> = {};
+
+io.on("connection", (socket) => {
+  console.log(`🟢 Spieler verbunden: ${socket.id}`);
+
+  socket.on("join", (data: { username: string }) => {
+    connectedPlayers[socket.id] = {
+      x: 100 + Math.random() * 200,
+      y: 100 + Math.random() * 200,
+      username: data.username,
+    };
+
+    io.emit("playersUpdate", connectedPlayers);
+  });
+
+  socket.on("move", (direction: string) => {
+    const player = connectedPlayers[socket.id];
+    if (!player) return;
+
+    const speed = 5;
+    switch (direction) {
+      case "up":
+        player.y -= speed;
+        break;
+      case "down":
+        console.log("test");
+        player.y += speed;
+        break;
+      case "left":
+        player.x -= speed;
+        break;
+      case "right":
+        player.x += speed;
+        break;
+    }
+
+    io.emit("playersUpdate", connectedPlayers);
+  });
+
+  socket.on("disconnect", () => {
+    delete connectedPlayers[socket.id];
+    io.emit("playersUpdate", connectedPlayers);
+  });
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Server läuft auf http://localhost:${PORT}`);
+server.listen(PORT, () => {
+  console.log(`✅ Server + WebSocket läuft auf http://localhost:${PORT}`);
 });
