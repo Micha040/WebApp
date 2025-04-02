@@ -444,6 +444,7 @@ const io = new Server(server, {
   cors: {
     origin: "web-app-red-nine.vercel.app",
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
