@@ -203,6 +203,22 @@ export default function LobbyView({ username }: { username: string }) {
     };
   }, [id, showChat]);
 
+  useEffect(() => {
+    if (!id) return;
+  
+    const channel = supabase
+      .channel(`lobby-${id}`)
+      .on('broadcast', { event: 'game-started' }, (payload) => {
+        console.log("🎮 Spielstart-Broadcast empfangen:", payload.payload);
+        navigate(`/game/${id}`); // 🔁 Route zum Spiel
+      })
+      .subscribe();
+  
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, navigate]);
+  
   const kickPlayer = async (playerUsername: string) => {
     if (!id) return;
   

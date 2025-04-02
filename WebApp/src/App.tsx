@@ -6,6 +6,7 @@ import { Modal } from './components/Modal';
 import { supabase } from './supabaseClient';
 import JoinLobbyModal from './components/JoinLobbyModal';
 import { Toast } from './components/Toast';
+import GameView from './pages/GameView';
 
 
 function App() {
@@ -210,7 +211,9 @@ function App() {
         }
       />
       <Route path="/lobby/:id" element={<LobbyView username={username} />} />
+      <Route path="/game/:id" element={<GameView username={username} />} />
     </Routes>
+    
   );
 }
 
