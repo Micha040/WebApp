@@ -352,7 +352,7 @@ app.use(express_1.default.json());
 const server = http_1.default.createServer(app);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: "web-app-red-nine.vercel.app",
+        origin: "https://web-app-red-nine.vercel.app",
         methods: ["GET", "POST"],
         credentials: true,
     },
