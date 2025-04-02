@@ -14,6 +14,7 @@ const corsOptions = {
     origin: ["https://web-app-red-nine.vercel.app"], // 👈 dein Vercel-Frontend
     methods: ["GET", "POST"],
     credentials: true, // 👈 wichtig für WebSocket-Kompatibilität
+    allowedHeaders: ["Content-Type"],
 };
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
