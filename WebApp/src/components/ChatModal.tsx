@@ -33,7 +33,7 @@ export default function ChatModal({ lobbyId, username, onClose }: ChatModalProps
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    await fetch("`${import.meta.env.VITE_API_URL}/messages`", {
+    await fetch(`${import.meta.env.VITE_API_URL}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lobbyId, username, content: newMessage }),
