@@ -10,7 +10,7 @@ type Player = {
   username: string;
 };
 
-const socket = io("http://localhost:3000");
+const socket = io(`${import.meta.env.VITE_API_URL}`);
 
 const GameView: React.FC = () => {
   const { id } = useParams(); // Lobby-ID, falls benötigt

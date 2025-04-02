@@ -52,14 +52,14 @@ export default function LobbyView({ username }: { username: string }) {
   useEffect(() => {
     if (!id) return;
   
-    fetch(`http://localhost:3000/lobby/${id}/host`)
+    fetch(`${import.meta.env.VITE_API_URL}/lobby/${id}/host`) 
       .then((res) => res.json())
       .then((data) => setHost(data.host))
       .catch((err) => console.error("Fehler beim Laden des Hosts", err));
   }, [id]);
 
   const fetchPlayers = async () => {
-    const res = await fetch(`http://localhost:3000/lobbys/${id}/players`);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/lobbys/${id}/players`); 
     const data = await res.json();
     setPlayers(data);
     
@@ -70,7 +70,7 @@ export default function LobbyView({ username }: { username: string }) {
     if (!id) return;
 
     const fetchLobby = async () => {
-      const lobbyRes = await fetch(`http://localhost:3000/lobbys/${id}`);
+      const lobbyRes = await fetch(`${import.meta.env.VITE_API_URL}/lobbys/${id}`);
       const lobbyData = await lobbyRes.json();
       setLobby(lobbyData);
     
@@ -116,7 +116,7 @@ export default function LobbyView({ username }: { username: string }) {
     setSettings(newSettings);
   
     if (isHost && id) {
-      await fetch(`http://localhost:3000/lobbys/${id}/settings`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/lobbys/${id}/settings`, { 
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,7 +222,7 @@ export default function LobbyView({ username }: { username: string }) {
   const kickPlayer = async (playerUsername: string) => {
     if (!id) return;
   
-    const res = await fetch(`http://localhost:3000/lobby/${id}/kick/${playerUsername}`, {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/lobby/${id}/kick/${playerUsername}`, { 
       method: 'DELETE',
     });
   
@@ -247,7 +247,7 @@ export default function LobbyView({ username }: { username: string }) {
     if (!id || !username) return;
 
     try {
-      await fetch(`http://localhost:3000/lobby/${id}/leave/${username}`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/lobby/${id}/leave/${username}`, { 
         method: 'DELETE',
       });
 
@@ -268,7 +268,7 @@ export default function LobbyView({ username }: { username: string }) {
   }
 
   try {
-    const res = await fetch("http://localhost:3000/lobby/start", {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/lobby/start`, { 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -34,7 +34,7 @@ function App() {
     }
 
     try {
-      const res = await fetch('http://localhost:3000/lobby', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/lobby`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -83,7 +83,7 @@ function App() {
     }
   
     try {
-      const res = await fetch('http://localhost:3000/lobby/join', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/lobby/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: nameToUse, lobbyId, password: pw }),
@@ -106,7 +106,7 @@ function App() {
   
 
   const fetchLobbys = async () => {
-    const res = await fetch('http://localhost:3000/lobbys');
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/lobbys`);
     const data = await res.json();
     setLobbys(data);
   };

@@ -25,7 +25,7 @@ export default function ChatModal({ lobbyId, username, onClose }: ChatModalProps
   };
 
   const fetchMessages = async () => {
-    const res = await fetch(`http://localhost:3000/messages/${lobbyId}`);
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/messages/${lobbyId}`); 
     const data = await res.json();
     setMessages(data);
   };
@@ -33,7 +33,7 @@ export default function ChatModal({ lobbyId, username, onClose }: ChatModalProps
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    await fetch("http://localhost:3000/messages", {
+    await fetch("`${import.meta.env.VITE_API_URL}/messages`", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lobbyId, username, content: newMessage }),
