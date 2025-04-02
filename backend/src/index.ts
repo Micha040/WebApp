@@ -7,7 +7,14 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+const corsOptions = {
+  origin: ["https://web-app-red-nine.vercel.app"], // 👈 dein Vercel-Frontend
+  methods: ["GET", "POST"],
+  credentials: true, // 👈 wichtig für WebSocket-Kompatibilität
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const supabase = createClient(
@@ -435,7 +442,7 @@ app.post("/lobby/start", async (req, res) => {
 import http from "http";
 import { Server } from "socket.io";
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const server = http.createServer(app);

@@ -10,7 +10,12 @@ const supabase_js_1 = require("@supabase/supabase-js");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)());
+const corsOptions = {
+    origin: ["https://web-app-red-nine.vercel.app"], // 👈 dein Vercel-Frontend
+    methods: ["GET", "POST"],
+    credentials: true, // 👈 wichtig für WebSocket-Kompatibilität
+};
+app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 const supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 // ✅ Lobby erstellen
@@ -342,10 +347,7 @@ app.post("/lobby/start", async (req, res) => {
 //
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
-app.use((0, cors_1.default)({
-    origin: "https://web-app-red-nine.vercel.app",
-    credentials: true,
-}));
+app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 const server = http_1.default.createServer(app);
 const io = new socket_io_1.Server(server, {
