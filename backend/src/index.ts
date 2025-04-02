@@ -32,6 +32,7 @@ app.post("/lobby", async (req, res) => {
 
   const lobbyId = randomUUID();
 
+  // 1. Lobby erstellen
   const { error: lobbyError } = await supabase
     .from("lobbys")
     .insert([{ id: lobbyId, host: username, name, password }]);
@@ -41,16 +42,36 @@ app.post("/lobby", async (req, res) => {
     return res.status(500).json({ error: lobbyError.message });
   }
 
-  const { error: playerError } = await supabase
+  // 2. Host als Spieler hinzufügen UND direkt ID zurückbekommen
+  const { data: insertedPlayer, error: playerInsertError } = await supabase
     .from("players")
-    .insert([{ username, lobby_id: lobbyId }]);
+    .insert([{ username, lobby_id: lobbyId }])
+    .select("id")
+    .single();
 
-  if (playerError) {
+  if (playerInsertError) {
     console.error(
       "❌ Supabase-Fehler (Host als Spieler hinzufügen):",
-      playerError
+      playerInsertError
     );
-    return res.status(500).json({ error: playerError.message });
+    return res.status(500).json({ error: playerInsertError.message });
+  }
+
+  // 3. Leeren Skin für Host anlegen
+  const { error: skinError } = await supabase.from("skins").insert([
+    {
+      player_id: insertedPlayer.id,
+      lobby_id: lobbyId,
+      top: "none",
+      ball: "RedBall",
+      eyes: "Eyes_Standart",
+      mouth: "Mouth_Smile",
+    },
+  ]);
+
+  if (skinError) {
+    console.error("❌ Supabase-Fehler (Skin erstellen):", skinError);
+    return res.status(500).json({ error: skinError.message });
   }
 
   res.json({ lobbyId });
@@ -119,11 +140,12 @@ app.post("/lobby/join", async (req, res) => {
   if (!existingSkin) {
     const { error: skinInsertError } = await supabase.from("skins").insert([
       {
-        player_id: playerId,
-        lobby_id: lobbyId, // wichtig: für spätere Queries in dieser Lobby
-        eyes: "default",
-        mouth: "default",
-        weapon: "none",
+        player_id: insertedPlayer.id,
+        lobby_id: lobbyId,
+        top: "none",
+        ball: "RedBall",
+        eyes: "Eyes_Standart",
+        mouth: "Mouth_Smile",
       },
     ]);
 
@@ -309,7 +331,7 @@ app.delete("/lobby/:lobbyId/kick/:username", async (req, res) => {
     .match({ lobby_id: lobbyId, username });
 
   if (error) {
-    return res.status(500).json({ error: "Fehler beim Kicken" });
+    return res.status(500).json(error);
   }
 
   // 🔴 Realtime-Broadcast an alle Clients in der Lobby
@@ -338,6 +360,58 @@ app.get("/lobby/:lobbyId/host", async (req, res) => {
   }
 
   res.json({ host: data.host });
+});
+
+app.post("/lobby/start", async (req, res) => {
+  const { lobbyId, username, skin } = req.body;
+
+  console.log("📥 Empfangen:", { lobbyId, username });
+  console.log("🔧 Skin-Daten empfangen:", JSON.stringify(skin, null, 2));
+
+  // Spieler finden
+  const { data: player, error: playerError } = await supabase
+    .from("players")
+    .select("id")
+    .eq("username", username)
+    .eq("lobby_id", lobbyId)
+    .single();
+
+  if (playerError || !player) {
+    console.error("❌ Spieler nicht gefunden:", playerError?.message);
+    return res.status(404).json({ error: "Spieler nicht gefunden" });
+  }
+
+  await supabase.channel(`lobby-${lobbyId}`).send({
+    type: "broadcast",
+    event: "game-started",
+    payload: {
+      message: "Das Spiel wurde gestartet",
+      lobbyId,
+    },
+  });
+
+  console.log("✅ Spieler gefunden:", player.id);
+
+  // Skin-Daten extrahieren
+  const { ball, eyes, mouth, top } = skin;
+
+  // Skin aktualisieren
+  const { error: updateError } = await supabase
+    .from("skins")
+    .update({ ball, eyes, mouth, top })
+    .eq("player_id", player.id);
+
+  if (updateError) {
+    console.error("❌ Fehler beim Skin-Update:", updateError.message);
+    return res
+      .status(500)
+      .json({ error: "Skin konnte nicht aktualisiert werden" });
+  }
+
+  console.log("✅ Skin wurde aktualisiert!");
+  res
+    .status(200)
+    .json({ message: "Spiel wurde gestartet und Skin gespeichert" });
 });
 
 const PORT = process.env.PORT || 3000;

@@ -39,6 +39,14 @@ export default function LobbyView({ username }: { username: string }) {
 
   const [host, setHost] = useState<string | null>(null);
   const isHost = host !== null && username === host;
+  const [currentSkin, setCurrentSkin] = useState<{
+    ball: string;
+  eyes: string;
+  mouth: string;
+  top: string;
+  } | null>(null);
+  
+
 
 
   useEffect(() => {
@@ -234,6 +242,35 @@ export default function LobbyView({ username }: { username: string }) {
   };
 
   if (!lobby) return <p style={{ padding: '2rem', color: '#fff' }}>Lade Lobby...</p>;
+
+  const handleStartGame = async () => {
+  console.log("🟢 handleStartGame wurde aufgerufen!");
+
+  if (!id || !username || !currentSkin) {
+    console.log("⚠️ Abbruch wegen fehlender Daten:", { id, username, currentSkin });
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:3000/lobby/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        lobbyId: id,
+        username,
+        skin: currentSkin,
+      }),
+    });
+
+    const data = await res.json();
+    console.log("✅ Antwort vom Server:", data);
+  } catch (err) {
+    console.error("❌ Fehler beim Starten des Spiels:", err);
+  }
+};
+
+  
+  
 
   return (
     <div
@@ -464,7 +501,13 @@ export default function LobbyView({ username }: { username: string }) {
             }}
           >
             <h2>🧍 Skin-Editor</h2>
-            <SkinEditor lobbyId={id!} username={username} isHost={isHost} />
+            <SkinEditor
+              lobbyId={id!}
+              username={username}
+              isHost={isHost}
+              onSkinChange={(skin) => setCurrentSkin(skin)} // ✅ Callback-Funktion einfügen
+            />
+
           </div>
         </div>
       </div>
@@ -531,6 +574,22 @@ export default function LobbyView({ username }: { username: string }) {
               ></span>
             )}
           </button>
+          <button
+          onClick={handleStartGame}
+              disabled={!isHost}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: isHost ? '#007bff' : '#555',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: isHost ? 'pointer' : 'not-allowed',
+                opacity: isHost ? 1 : 0.6,
+              }}
+            >
+              🎮 Spiel starten
+          </button>
+
           <button
             onClick={handleLeaveLobby}
             style={{
