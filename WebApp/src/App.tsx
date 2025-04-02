@@ -213,7 +213,7 @@ function App() {
         }
       />
       <Route path="/lobby/:id" element={<LobbyView username={username} />} />
-      <Route path="/game/:id" element={<GameView username={username} />} />
+      <Route path="/game/:id" element={<GameView />} />
     </Routes>
     
   );
