@@ -467,6 +467,7 @@ type Bullet = {
   y: number;
   vx: number;
   vy: number;
+  ownerId: string;
 };
 
 const bullets: Bullet[] = [];
@@ -520,6 +521,7 @@ io.on("connection", (socket) => {
       y: bulletData.y,
       vx: bulletData.vx,
       vy: bulletData.vy,
+      ownerId: socket.id,
     };
     bullets.push(bullet);
 
@@ -540,6 +542,9 @@ io.on("connection", (socket) => {
 setInterval(() => {
   bullets.forEach((bullet, index) => {
     for (const [socketId, player] of Object.entries(connectedPlayers)) {
+      // 👉 Eigene Kugel trifft nicht
+      if (bullet.ownerId === socketId) continue;
+
       const dx = player.x - bullet.x;
       const dy = player.y - bullet.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
@@ -556,7 +561,7 @@ setInterval(() => {
       }
     }
   });
-}, 50); // alle 50ms prüfen
+}, 50);
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
