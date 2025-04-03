@@ -1,7 +1,6 @@
-// GameView.tsx
-import React, { useEffect, useState, useRef } from "react";
-import { io } from "socket.io-client";
-import { useParams } from "react-router-dom";
+import React, { useEffect, useRef, useState } from 'react';
+import { io } from 'socket.io-client';
+import { useParams } from 'react-router-dom';
 
 type Player = {
   x: number;
@@ -9,136 +8,123 @@ type Player = {
   username: string;
 };
 
-const socket = io(`${import.meta.env.VITE_API_URL}`, {
+const socket = io(import.meta.env.VITE_API_URL, {
   withCredentials: true,
-  transports: ["websocket"],
+  transports: ['websocket'],
 });
 
 const GameView: React.FC = () => {
   const { id } = useParams();
   const [players, setPlayers] = useState<Record<string, Player>>({});
-  const [username, setUsername] = useState<string>("");
-
-  const keysPressed = useRef<{ [key: string]: boolean }>({});
-  const animationRef = useRef<number>(0);
+  const [username, setUsername] = useState<string>('');
 
   console.log(id)
 
-  // Hole Username
+  const keysPressed = useRef<{ [key: string]: boolean }>({});
+  const animationFrame = useRef<number>(0);
+
+  // Hole Username und joine Socket
   useEffect(() => {
-    const storedUsername = localStorage.getItem("username");
+    const storedUsername = localStorage.getItem('username');
     if (storedUsername) {
       setUsername(storedUsername);
-      socket.emit("join", { username: storedUsername });
+      socket.emit('join', { username: storedUsername });
     }
   }, []);
 
-  // Empfange Spieler-Updates
+  // Spielerpositionen empfangen
   useEffect(() => {
-    const handleUpdate = (data: Record<string, Player>) => {
+    socket.on('playersUpdate', (data: Record<string, Player>) => {
       setPlayers(data);
-    };
-  
-    socket.on("playersUpdate", handleUpdate);
-  
+    });
     return () => {
-      socket.off("playersUpdate", handleUpdate);
+      socket.off('playersUpdate');
     };
   }, []);
-  
 
-  // Tastendruck registrieren
+  // Key-Events + Bewegung per Loop
   useEffect(() => {
-    const down = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current[e.key.toLowerCase()] = true;
     };
-    const up = (e: KeyboardEvent) => {
+
+    const handleKeyUp = (e: KeyboardEvent) => {
       keysPressed.current[e.key.toLowerCase()] = false;
     };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
 
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-    };
-  }, []);
+    const move = () => {
+      const directions: string[] = [];
 
-  // Bewegung loop
-  useEffect(() => {
-    const moveLoop = () => {
-      let direction = "";
+      if (keysPressed.current['w']) directions.push('up');
+      if (keysPressed.current['a']) directions.push('left');
+      if (keysPressed.current['s']) directions.push('down');
+      if (keysPressed.current['d']) directions.push('right');
 
-      const { w, a, s, d } = {
-        w: keysPressed.current["w"],
-        a: keysPressed.current["a"],
-        s: keysPressed.current["s"],
-        d: keysPressed.current["d"],
-      };
-
-      if (w) direction += "up";
-      if (s) direction += "down";
-      if (a) direction += "left";
-      if (d) direction += "right";
-
-      if (direction !== "") {
-        socket.emit("move", direction);
+      if (directions.length > 0) {
+        socket.emit('move', directions);
       }
 
-      animationRef.current = requestAnimationFrame(moveLoop);
+      animationFrame.current = requestAnimationFrame(move);
     };
 
-    animationRef.current = requestAnimationFrame(moveLoop);
-    return () => cancelAnimationFrame(animationRef.current!);
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    animationFrame.current = requestAnimationFrame(move);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      cancelAnimationFrame(animationFrame.current);
+    };
   }, []);
 
   return (
     <div
       style={{
-        position: "relative",
-        width: "100%",
-        height: "100vh",
-        background: "#222",
+        position: 'relative',
+        width: '100%',
+        height: '100vh',
+        background: '#222',
       }}
     >
-      {Object.keys(players).map((socketId) => {
-        const player = players[socketId];
-        const isMe = player.username === username;
-
-        return (
+      {Object.entries(players).map(([socketId, player]) => (
+        <div
+          key={socketId}
+          style={{
+            position: 'absolute',
+            left: player.x,
+            top: player.y,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          {/* Spielername über dem Kreis */}
           <div
-            key={socketId}
             style={{
-              position: "absolute",
-              left: player.x,
-              top: player.y,
-              transform: "translate(-50%, -50%)",
-              textAlign: "center",
+              color: 'white',
+              fontSize: '0.7rem',
+              textAlign: 'center',
+              marginBottom: 4,
             }}
           >
-            {/* Name über dem Kopf */}
-            <div
-              style={{
-                color: "white",
-                marginBottom: "4px",
-                fontSize: "0.75rem",
-              }}
-            >
-              {player.username}
-            </div>
-
-            {/* Spielerball */}
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                background: isMe ? "blue" : "red",
-                borderRadius: "50%",
-              }}
-            />
+            {player.username}
           </div>
-        );
-      })}
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              background: player.username === username ? 'blue' : 'red',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '0.8rem',
+            }}
+          >
+            {/* Optional Inhalt im Kreis */}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
