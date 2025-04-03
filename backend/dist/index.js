@@ -390,17 +390,23 @@ io.on("connection", (socket) => {
             player.x += speed;
         io.emit("playersUpdate", connectedPlayers);
     });
-    socket.on("shoot", ({ x, y, dx, dy }) => {
-        const id = crypto.randomUUID();
-        const bullet = { id, x, y, dx, dy };
-        bullets.push(bullet);
-        io.emit("bulletFired", bullet);
-    });
+    // socket.on("shoot", ({ x, y, dx, dy }) => {
+    //   const id = crypto.randomUUID();
+    //   const bullet: Bullet = { id, x, y, dx, dy };
+    //   bullets.push(bullet);
+    //   io.emit("bulletFired", bullet);
+    // });
     socket.on("bulletFired", (bulletData) => {
-        io.emit("bulletSpawned", {
-            ...bulletData,
-            id: crypto.randomUUID(), // falls du eine ID brauchst
-        });
+        const id = crypto.randomUUID();
+        const bullet = {
+            id,
+            x: bulletData.x,
+            y: bulletData.y,
+            dx: bulletData.vx,
+            dy: bulletData.vy,
+        };
+        bullets.push(bullet);
+        io.emit("bulletSpawned", bullet);
     });
     socket.on("disconnect", () => {
         delete connectedPlayers[socket.id];
