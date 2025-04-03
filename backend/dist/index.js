@@ -413,6 +413,9 @@ io.on("connection", (socket) => {
         delete connectedPlayers[socket.id];
         io.emit("playersUpdate", connectedPlayers);
     });
+    socket.on("pingTest", (cb) => {
+        cb(); // sofortige Antwort
+    });
 });
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
