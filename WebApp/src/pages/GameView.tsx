@@ -105,7 +105,15 @@ const GameView: React.FC = () => {
         y: currentPlayer.y,
         vx,
         vy,
-      });
+      }
+    );
+
+    console.log("🚀 Bullet abgeschickt:", {
+      x: currentPlayer.x,
+      y: currentPlayer.y,
+      vx,
+      vy,
+    });
       
 
       // const newBullet: Bullet = {
