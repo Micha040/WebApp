@@ -396,6 +396,12 @@ io.on("connection", (socket) => {
         bullets.push(bullet);
         io.emit("bulletFired", bullet);
     });
+    socket.on("bulletFired", (bulletData) => {
+        io.emit("bulletSpawned", {
+            ...bulletData,
+            id: crypto.randomUUID(), // falls du eine ID brauchst
+        });
+    });
     socket.on("disconnect", () => {
         delete connectedPlayers[socket.id];
         io.emit("playersUpdate", connectedPlayers);
