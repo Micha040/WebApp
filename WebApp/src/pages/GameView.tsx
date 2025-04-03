@@ -108,15 +108,15 @@ const GameView: React.FC = () => {
       });
       
 
-      const newBullet: Bullet = {
-        id: crypto.randomUUID(),
-        x: currentPlayer.x,
-        y: currentPlayer.y,
-        vx,
-        vy,
-      };
+      // const newBullet: Bullet = {
+      //   id: crypto.randomUUID(),
+      //   x: currentPlayer.x,
+      //   y: currentPlayer.y,
+      //   vx,
+      //   vy,
+      // };
 
-      setBullets((prev) => [...prev, newBullet]);
+      // setBullets((prev) => [...prev, newBullet]);
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -136,6 +136,7 @@ const GameView: React.FC = () => {
 
   useEffect(() => {
     socket.on("bulletSpawned", (bullet: Bullet) => {
+      console.log("📦 Bullet empfangen", bullet);
       setBullets((prev) => [...prev, bullet]);
     });
   
@@ -143,6 +144,7 @@ const GameView: React.FC = () => {
       socket.off("bulletSpawned");
     };
   }, []);
+  
   
 
   return (
