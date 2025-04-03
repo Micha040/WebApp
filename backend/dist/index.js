@@ -402,8 +402,8 @@ io.on("connection", (socket) => {
             id,
             x: bulletData.x,
             y: bulletData.y,
-            dx: bulletData.vx,
-            dy: bulletData.vy,
+            vx: bulletData.vx,
+            vy: bulletData.vy,
         };
         bullets.push(bullet);
         io.emit("bulletSpawned", bullet);
