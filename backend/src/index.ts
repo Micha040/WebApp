@@ -461,6 +461,16 @@ const connectedPlayers: Record<
   { x: number; y: number; username: string; lastInput?: string }
 > = {};
 
+type Bullet = {
+  id: string;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+};
+
+const bullets: Bullet[] = [];
+
 io.on("connection", (socket) => {
   console.log("🟢 Neue Socket-Verbindung:", socket.id); // ← ganz oben
   console.log(`🟢 Spieler verbunden: ${socket.id}`);
@@ -491,6 +501,28 @@ io.on("connection", (socket) => {
     if (directions.includes("right")) player.x += speed;
 
     io.emit("playersUpdate", connectedPlayers);
+  });
+
+  // socket.on("shoot", ({ x, y, dx, dy }) => {
+  //   const id = crypto.randomUUID();
+  //   const bullet: Bullet = { id, x, y, dx, dy };
+  //   bullets.push(bullet);
+  //   io.emit("bulletFired", bullet);
+  // });
+
+  socket.on("bulletFired", (bulletData) => {
+    console.log("📥 Bullet empfangen:", bulletData);
+    const id = crypto.randomUUID();
+    const bullet: Bullet = {
+      id,
+      x: bulletData.x,
+      y: bulletData.y,
+      vx: bulletData.vx,
+      vy: bulletData.vy,
+    };
+    bullets.push(bullet);
+
+    io.emit("bulletSpawned", bullet);
   });
 
   socket.on("disconnect", () => {
