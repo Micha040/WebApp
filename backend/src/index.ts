@@ -458,7 +458,7 @@ const io = new Server(server, {
 // ✅ Spielerliste nach socket.id
 const connectedPlayers: Record<
   string,
-  { x: number; y: number; username: string; lastInput?: string }
+  { x: number; y: number; username: string; health: number }
 > = {};
 
 type Bullet = {
@@ -485,6 +485,7 @@ io.on("connection", (socket) => {
       x: 100 + Math.random() * 200,
       y: 100 + Math.random() * 200,
       username: data.username,
+      health: 100,
     };
     io.emit("playersUpdate", connectedPlayers);
   });
@@ -534,6 +535,28 @@ io.on("connection", (socket) => {
     cb(); // sofortige Antwort
   });
 });
+
+// Kollisionen prüfen & Leben abziehen
+setInterval(() => {
+  bullets.forEach((bullet, index) => {
+    for (const [socketId, player] of Object.entries(connectedPlayers)) {
+      const dx = player.x - bullet.x;
+      const dy = player.y - bullet.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < 20) {
+        // Trefferabstand ≈ Spielergröße
+        player.health = Math.max(player.health - 1, 0);
+        bullets.splice(index, 1); // Kugel entfernen
+        console.log(
+          `💥 ${player.username} wurde getroffen! HP: ${player.health}`
+        );
+        io.emit("playersUpdate", connectedPlayers);
+        break;
+      }
+    }
+  });
+}, 50); // alle 50ms prüfen
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
