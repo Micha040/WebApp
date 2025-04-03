@@ -513,7 +513,6 @@ io.on("connection", (socket) => {
   // });
 
   socket.on("bulletFired", (bulletData) => {
-    console.log("📥 Bullet empfangen:", bulletData);
     const id = crypto.randomUUID();
     const bullet: Bullet = {
       id,
