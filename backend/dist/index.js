@@ -359,6 +359,7 @@ const io = new socket_io_1.Server(server, {
 });
 // ✅ Spielerliste nach socket.id
 const connectedPlayers = {};
+const bullets = [];
 io.on("connection", (socket) => {
     console.log("🟢 Neue Socket-Verbindung:", socket.id); // ← ganz oben
     console.log(`🟢 Spieler verbunden: ${socket.id}`);
@@ -388,6 +389,12 @@ io.on("connection", (socket) => {
         if (directions.includes("right"))
             player.x += speed;
         io.emit("playersUpdate", connectedPlayers);
+    });
+    socket.on("shoot", ({ x, y, dx, dy }) => {
+        const id = crypto.randomUUID();
+        const bullet = { id, x, y, dx, dy };
+        bullets.push(bullet);
+        io.emit("bulletFired", bullet);
     });
     socket.on("disconnect", () => {
         delete connectedPlayers[socket.id];
