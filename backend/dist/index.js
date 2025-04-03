@@ -374,27 +374,19 @@ io.on("connection", (socket) => {
         };
         io.emit("playersUpdate", connectedPlayers);
     });
-    socket.on("move", (direction) => {
+    socket.on("move", (directions) => {
         const player = connectedPlayers[socket.id];
         if (!player)
             return;
-        const speed = 5;
-        switch (direction) {
-            case "up":
-                player.y -= speed;
-                break;
-            case "down":
-                console.log("test");
-                player.y += speed;
-                break;
-            case "left":
-                player.x -= speed;
-                break;
-            case "right":
-                player.x += speed;
-                break;
-        }
-        player.lastInput = direction;
+        const speed = 4;
+        if (directions.includes("up"))
+            player.y -= speed;
+        if (directions.includes("down"))
+            player.y += speed;
+        if (directions.includes("left"))
+            player.x -= speed;
+        if (directions.includes("right"))
+            player.x += speed;
         io.emit("playersUpdate", connectedPlayers);
     });
     socket.on("disconnect", () => {
