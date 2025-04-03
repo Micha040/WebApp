@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { useParams } from 'react-router-dom';
+// import { useParams } from 'react-router-dom';
 
 type Player = {
   x: number;
@@ -24,12 +24,12 @@ const socket = io(import.meta.env.VITE_API_URL, {
 });
 
 const GameView: React.FC = () => {
-  const { id } = useParams();
+  // const { id } = useParams();
   const [players, setPlayers] = useState<Record<string, Player>>({});
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [username, setUsername] = useState<string>('');
 
-  console.log(id)
+  
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrame = useRef<number>(0);
@@ -120,12 +120,12 @@ const GameView: React.FC = () => {
       }
     );
 
-    console.log("🚀 Bullet abgeschickt:", {
-      x: currentPlayer.x,
-      y: currentPlayer.y,
-      vx,
-      vy,
-    });
+    // console.log("🚀 Bullet abgeschickt:", {
+    //   x: currentPlayer.x,
+    //   y: currentPlayer.y,
+    //   vx,
+    //   vy,
+    // });
       
 
       // const newBullet: Bullet = {
@@ -156,7 +156,6 @@ const GameView: React.FC = () => {
 
   useEffect(() => {
     socket.on("bulletSpawned", (bullet: Bullet) => {
-      console.log("📦 Bullet empfangen", bullet);
       setBullets((prev) => [...prev, bullet]);
     });
   
