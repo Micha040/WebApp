@@ -6,6 +6,7 @@ type Player = {
   x: number;
   y: number;
   username: string;
+  health: number;
 };
 
 type Bullet = {
@@ -184,102 +185,132 @@ useEffect(() => {
   
   
 
-  return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100vh',
-        background: '#222',
-      }}
-    >
-      {/* Spieler-Render */}
-      {Object.entries(players).map(([socketId, player]) => (
+return (
+  <div
+    style={{
+      position: 'relative',
+      width: '100%',
+      height: '100vh',
+      background: '#222',
+    }}
+  >
+    {/* Spieler-Render */}
+    {Object.entries(players).map(([socketId, player]) => (
+      <div
+        key={socketId}
+        style={{
+          position: 'absolute',
+          left: player.x,
+          top: player.y,
+          transform: 'translate(-50%, -50%)',
+        }}
+      >
+        {/* Name über dem Kopf */}
         <div
-          key={socketId}
           style={{
-            position: 'absolute',
-            left: player.x,
-            top: player.y,
-            transform: 'translate(-50%, -50%)',
+            color: 'white',
+            fontSize: '0.7rem',
+            textAlign: 'center',
+            marginBottom: 4,
+          }}
+        >
+          {player.username}
+        </div>
+
+        {/* Spielfigur */}
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            background: player.username === username ? 'blue' : 'red',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: '0.8rem',
+          }}
+        />
+
+        {/* Lebensbalken */}
+        <div
+          style={{
+            marginTop: 6,
+            width: 40,
+            height: 6,
+            backgroundColor: '#444',
+            borderRadius: 4,
+            overflow: 'hidden',
           }}
         >
           <div
             style={{
-              color: 'white',
-              fontSize: '0.7rem',
-              textAlign: 'center',
-              marginBottom: 4,
-            }}
-          >
-            {player.username}
-          </div>
-          <div
-            style={{
-              width: '40px',
-              height: '40px',
-              background: player.username === username ? 'blue' : 'red',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '0.8rem',
+              width: `${player.health ?? 100}%`,
+              height: '100%',
+              backgroundColor:
+                (player.health ?? 100) > 50
+                  ? 'limegreen'
+                  : (player.health ?? 100) > 20
+                  ? 'orange'
+                  : 'red',
+              transition: 'width 0.1s ease-in-out',
             }}
           />
         </div>
-      ))}
-  
-      {/* Bullets */}
-      {bullets.map((b) => (
-        <div
-          key={b.id}
-          style={{
-            position: 'absolute',
-            left: b.x,
-            top: b.y,
-            width: '10px',
-            height: '10px',
-            backgroundColor: 'yellow',
-            borderRadius: '50%',
-            transform: 'translate(-50%, -50%)',
-          }}
-        />
-      ))}
-  
-      {/* Spieler-Übersicht bei gedrücktem Tab */}
-      {showPlayerList && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(0, 0, 0, 0.75)',
-            color: 'white',
-            padding: '16px 24px',
-            borderRadius: '10px',
-            zIndex: 9999,
-            boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6)',
-            minWidth: '250px',
-            textAlign: 'center',
-            fontSize: '0.9rem',
-          }}
-        >
-          <strong>Spieler online:</strong>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0 0' }}>
-            {Object.values(players).map((player) => (
-              <li key={player.username}>{player.username}</li>
-            ))}
-          </ul>
+      </div>
+    ))}
 
-          <div style={{ marginTop: '10px', fontSize: '0.8rem', opacity: 0.9 }}>
-            Ping: {ping !== null ? `${ping} ms` : '–'}
-          </div>
+    {/* Bullets */}
+    {bullets.map((b) => (
+      <div
+        key={b.id}
+        style={{
+          position: 'absolute',
+          left: b.x,
+          top: b.y,
+          width: '10px',
+          height: '10px',
+          backgroundColor: 'yellow',
+          borderRadius: '50%',
+          transform: 'translate(-50%, -50%)',
+        }}
+      />
+    ))}
+
+    {/* Spieler-Übersicht bei gedrücktem Tab */}
+    {showPlayerList && (
+      <div
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          color: 'white',
+          padding: '16px 24px',
+          borderRadius: '10px',
+          zIndex: 9999,
+          boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6)',
+          minWidth: '250px',
+          textAlign: 'center',
+          fontSize: '0.9rem',
+        }}
+      >
+        <strong>Spieler online:</strong>
+        <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0 0' }}>
+          {Object.values(players).map((player) => (
+            <li key={player.username}>{player.username}</li>
+          ))}
+        </ul>
+
+        <div style={{ marginTop: '10px', fontSize: '0.8rem', opacity: 0.9 }}>
+          Ping: {ping !== null ? `${ping} ms` : '–'}
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
+
   
 };
 
