@@ -100,6 +100,14 @@ const GameView: React.FC = () => {
       const vx = (dx / len) * speed;
       const vy = (dy / len) * speed;
 
+      socket.emit("bulletFired", {
+        x: currentPlayer.x,
+        y: currentPlayer.y,
+        vx,
+        vy,
+      });
+      
+
       const newBullet: Bullet = {
         id: crypto.randomUUID(),
         x: currentPlayer.x,
@@ -125,6 +133,17 @@ const GameView: React.FC = () => {
       cancelAnimationFrame(animationFrame.current);
     };
   }, [players, username]);
+
+  useEffect(() => {
+    socket.on("bulletSpawned", (bullet: Bullet) => {
+      setBullets((prev) => [...prev, bullet]);
+    });
+  
+    return () => {
+      socket.off("bulletSpawned");
+    };
+  }, []);
+  
 
   return (
     <div
