@@ -33,6 +33,9 @@ const GameView: React.FC = () => {
   const animationFrame = useRef<number>(0);
   const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  const [showPlayerList, setShowPlayerList] = useState(false);
+
+
   // Hole Username und joine Socket
   useEffect(() => {
     const storedUsername = localStorage.getItem('username');
@@ -56,10 +59,17 @@ const GameView: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current[e.key.toLowerCase()] = true;
+      if (e.key === 'Tab') {
+        e.preventDefault(); // Verhindert Browser-Fokuswechsel
+        setShowPlayerList(true);
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
       keysPressed.current[e.key.toLowerCase()] = false;
+      if (e.key === 'Tab') {
+        setShowPlayerList(false);
+      }
     };
 
     const move = () => {
@@ -200,7 +210,7 @@ const GameView: React.FC = () => {
           />
         </div>
       ))}
-
+  
       {/* Bullets */}
       {bullets.map((b) => (
         <div
@@ -217,8 +227,35 @@ const GameView: React.FC = () => {
           }}
         />
       ))}
+  
+      {/* Spieler-Übersicht bei gedrücktem Tab */}
+      {showPlayerList && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 20,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#333',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            zIndex: 1000,
+            maxHeight: '50vh',
+            overflowY: 'auto',
+          }}
+        >
+          <strong>Spieler online:</strong>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {Object.values(players).map((player) => (
+              <li key={player.username}>{player.username}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
+  
 };
 
 export default GameView;
