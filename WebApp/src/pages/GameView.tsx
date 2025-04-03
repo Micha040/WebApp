@@ -232,29 +232,30 @@ const GameView: React.FC = () => {
       {showPlayerList && (
         <div
           style={{
-            position: 'absolute',
-            top: '40px',
+            position: 'fixed',
+            top: '20px',
             left: '50%',
             transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
             color: 'white',
-            padding: '12px 24px',
-            borderRadius: '12px',
-            zIndex: 999,
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
-            minWidth: '200px',
+            padding: '16px 24px',
+            borderRadius: '10px',
+            zIndex: 9999,
+            boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6)',
+            minWidth: '250px',
             textAlign: 'center',
             fontSize: '0.9rem',
           }}
         >
           <strong>Spieler online:</strong>
-          <ul style={{ listStyle: 'none', padding: 0, margin: '8px 0 0 0' }}>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0 0' }}>
             {Object.values(players).map((player) => (
               <li key={player.username}>{player.username}</li>
             ))}
           </ul>
         </div>
       )}
+
 
     </div>
   );
