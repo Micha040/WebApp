@@ -162,6 +162,25 @@ const GameView: React.FC = () => {
       socket.off("bulletSpawned");
     };
   }, []);
+
+  const [ping, setPing] = useState<number | null>(null);
+
+useEffect(() => {
+  let interval: number;
+
+  const measurePing = () => {
+    const start = Date.now();
+    socket.emit('pingTest', () => {
+      const duration = Date.now() - start;
+      setPing(duration);
+    });
+  };
+
+  interval = window.setInterval(measurePing, 2000); // alle 2s messen
+
+  return () => clearInterval(interval);
+}, []);
+
   
   
 
@@ -253,10 +272,12 @@ const GameView: React.FC = () => {
               <li key={player.username}>{player.username}</li>
             ))}
           </ul>
+
+          <div style={{ marginTop: '10px', fontSize: '0.8rem', opacity: 0.9 }}>
+            Ping: {ping !== null ? `${ping} ms` : '–'}
+          </div>
         </div>
       )}
-
-
     </div>
   );
   
