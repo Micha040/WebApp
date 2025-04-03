@@ -548,15 +548,19 @@ setInterval(() => {
       const dy = player.y - bullet.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance < 20) {
-        // Trefferabstand ≈ Spielergröße
+      const hit =
+        bullet.x > player.x - 20 &&
+        bullet.x < player.x + 20 &&
+        bullet.y > player.y - 20 &&
+        bullet.y < player.y + 20;
+
+      if (hit) {
         player.health = Math.max(player.health - 1, 0);
-        bullets.splice(index, 1); // Kugel entfernen
+        bullets.splice(index, 1);
         console.log(
           `💥 ${player.username} wurde getroffen! HP: ${player.health}`
         );
         io.emit("playersUpdate", connectedPlayers);
-        break;
       }
     }
   });
