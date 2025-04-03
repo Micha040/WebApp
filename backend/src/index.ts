@@ -12,6 +12,7 @@ const corsOptions = {
   origin: ["https://web-app-red-nine.vercel.app"], // 👈 dein Vercel-Frontend
   methods: ["GET", "POST"],
   credentials: true, // 👈 wichtig für WebSocket-Kompatibilität
+  allowedHeaders: ["Content-Type"],
 };
 
 app.use(cors(corsOptions));
@@ -442,14 +443,13 @@ app.post("/lobby/start", async (req, res) => {
 import http from "http";
 import { Server } from "socket.io";
 
-app.use(cors(corsOptions));
 app.use(express.json());
 
 const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "web-app-red-nine.vercel.app",
+    origin: "https://web-app-red-nine.vercel.app",
     methods: ["GET", "POST"],
     credentials: true,
   },

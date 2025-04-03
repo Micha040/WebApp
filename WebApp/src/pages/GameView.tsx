@@ -1,8 +1,7 @@
-
 // GameView.tsx
-import React, { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
-import { useParams } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from "react";
+import { io } from "socket.io-client";
+import { useParams } from "react-router-dom";
 
 type Player = {
   x: number;
@@ -11,91 +10,131 @@ type Player = {
 };
 
 const socket = io(`${import.meta.env.VITE_API_URL}`, {
-  withCredentials: true, // 👈 WICHTIG
-  transports: ["websocket"], // 👈 optional, um Polling zu umgehen
-}
-  
-);
+  withCredentials: true,
+  transports: ["websocket"],
+});
 
 const GameView: React.FC = () => {
-  const { id } = useParams(); // Lobby-ID, falls benötigt
+  const { id } = useParams();
   const [players, setPlayers] = useState<Record<string, Player>>({});
   const [username, setUsername] = useState<string>("");
 
-  // Hole den Usernamen (z. B. aus dem localStorage)
+  const keysPressed = useRef<{ [key: string]: boolean }>({});
+  const animationRef = useRef<number>(0);
+
+
+  // Hole Username
   useEffect(() => {
     const storedUsername = localStorage.getItem("username");
     if (storedUsername) {
       setUsername(storedUsername);
-      // Sende "join", damit der Server den Spieler registriert
       socket.emit("join", { username: storedUsername });
-      console.log(id)
     }
   }, []);
 
-  //.
-  // Empfange Updates der Spielerpositionen vom Server
+  // Empfange Spieler-Updates
   useEffect(() => {
-    socket.on("playersUpdate", (data: Record<string, Player>) => {
+    const handleUpdate = (data: Record<string, Player>) => {
       setPlayers(data);
-    });
+    };
+  
+    socket.on("playersUpdate", handleUpdate);
+  
+    return () => {
+      socket.off("playersUpdate", handleUpdate);
+    };
+  }, []);
+  
+
+  // Tastendruck registrieren
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      keysPressed.current[e.key.toLowerCase()] = true;
+    };
+    const up = (e: KeyboardEvent) => {
+      keysPressed.current[e.key.toLowerCase()] = false;
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
 
     return () => {
-      socket.off("playersUpdate");
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
     };
   }, []);
 
-  // WASD-Tasten abfangen und "move" Event senden
+  // Bewegung loop
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const moveLoop = () => {
       let direction = "";
-      switch (e.key.toLowerCase()) {
-        case "w":
-          direction = "up";
-          break;
-        case "a":
-          direction = "left";
-          break;
-        case "s":
-          direction = "down";
-          break;
-        case "d":
-          direction = "right";
-          break;
-        default:
-          return;
+
+      const { w, a, s, d } = {
+        w: keysPressed.current["w"],
+        a: keysPressed.current["a"],
+        s: keysPressed.current["s"],
+        d: keysPressed.current["d"],
+      };
+
+      if (w) direction += "up";
+      if (s) direction += "down";
+      if (a) direction += "left";
+      if (d) direction += "right";
+
+      if (direction !== "") {
+        socket.emit("move", direction);
       }
-      socket.emit("move", direction);
+
+      animationRef.current = requestAnimationFrame(moveLoop);
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    animationRef.current = requestAnimationFrame(moveLoop);
+    return () => cancelAnimationFrame(animationRef.current!);
   }, []);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100vh', background: '#222' }}>
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100vh",
+        background: "#222",
+      }}
+    >
       {Object.keys(players).map((socketId) => {
         const player = players[socketId];
+        const isMe = player.username === username;
+
         return (
           <div
             key={socketId}
             style={{
-              position: 'absolute',
+              position: "absolute",
               left: player.x,
               top: player.y,
-              width: '40px',
-              height: '40px',
-              background: player.username === username ? 'blue' : 'red',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderRadius: '50%',
-              transform: 'translate(-50%, -50%)',
-              fontSize: '0.8rem'
+              transform: "translate(-50%, -50%)",
+              textAlign: "center",
             }}
           >
-            {player.username}
+            {/* Name über dem Kopf */}
+            <div
+              style={{
+                color: "white",
+                marginBottom: "4px",
+                fontSize: "0.75rem",
+              }}
+            >
+              {player.username}
+            </div>
+
+            {/* Spielerball */}
+            <div
+              style={{
+                width: "40px",
+                height: "40px",
+                background: isMe ? "blue" : "red",
+                borderRadius: "50%",
+              }}
+            />
           </div>
         );
       })}
