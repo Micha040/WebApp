@@ -15,6 +15,7 @@ type Bullet = {
   y: number;
   vx: number;
   vy: number;
+  ownerId: string;
 };
 
 const socket = io(import.meta.env.VITE_API_URL, {
