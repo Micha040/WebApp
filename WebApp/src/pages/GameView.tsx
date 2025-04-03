@@ -50,6 +50,7 @@ const GameView: React.FC = () => {
   // Spielerpositionen empfangen
   useEffect(() => {
     socket.on('playersUpdate', (data: Record<string, Player>) => {
+      console.log("🔁 Spieler-Update empfangen:", data);
       setPlayers(data);
     });
     return () => {
