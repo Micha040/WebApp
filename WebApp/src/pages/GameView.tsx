@@ -22,6 +22,7 @@ const GameView: React.FC = () => {
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationRef = useRef<number>(0);
 
+  console.log(id)
 
   // Hole Username
   useEffect(() => {
