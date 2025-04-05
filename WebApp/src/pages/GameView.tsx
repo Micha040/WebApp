@@ -35,7 +35,11 @@ const GameView: React.FC = () => {
   const [players, setPlayers] = useState<Record<string, Player>>({});
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [username, setUsername] = useState<string>('');
-  const [chests, setChests] = useState<Chest[]>([]);
+  const [chests, setChests] = useState<Chest[]>([
+    { id: 'chest-1', x: 300, y: 300, opened: false },
+    { id: 'chest-2', x: 600, y: 400, opened: false },
+  ]);
+  
   const [nearChestId, setNearChestId] = useState<string | null>(null);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
@@ -91,8 +95,14 @@ const GameView: React.FC = () => {
       }
 
       socket.on('chestsUpdate', (updatedChests: Chest[]) => {
-        setChests(updatedChests);
+        setChests((prevChests) =>
+          prevChests.map((chest) => {
+            const updated = updatedChests.find((c) => c.id === chest.id);
+            return updated ? { ...chest, opened: updated.opened } : chest;
+          })
+        );
       });
+      
       
 
       setBullets((prev) =>
