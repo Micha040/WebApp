@@ -18,6 +18,13 @@ type Bullet = {
   ownerId: string;
 };
 
+type Chest = {
+  id: string;
+  x: number;
+  y: number;
+  opened: boolean;
+};
+
 const socket = io(import.meta.env.VITE_API_URL, {
   withCredentials: true,
   transports: ['websocket'],
@@ -28,17 +35,18 @@ const GameView: React.FC = () => {
   const [players, setPlayers] = useState<Record<string, Player>>({});
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [username, setUsername] = useState<string>('');
-
-  
+  const [chests, setChests] = useState<Chest[]>([
+    { id: 'chest-1', x: 300, y: 300, opened: false },
+    { id: 'chest-2', x: 600, y: 400, opened: false },
+  ]);
+  const [nearChestId, setNearChestId] = useState<string | null>(null);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrame = useRef<number>(0);
   const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-
   const [showPlayerList, setShowPlayerList] = useState(false);
+  const [ping, setPing] = useState<number | null>(null);
 
-
-  // Hole Username und joine Socket
   useEffect(() => {
     const storedUsername = localStorage.getItem('username');
     if (storedUsername) {
@@ -47,7 +55,6 @@ const GameView: React.FC = () => {
     }
   }, []);
 
-  // Spielerpositionen empfangen
   useEffect(() => {
     socket.on('playersUpdate', (data: Record<string, Player>) => {
       console.log("🔁 Spieler-Update empfangen:", data);
@@ -58,12 +65,11 @@ const GameView: React.FC = () => {
     };
   }, []);
 
-  // Bewegung & Schießen
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       keysPressed.current[e.key.toLowerCase()] = true;
       if (e.key === 'Tab') {
-        e.preventDefault(); // Verhindert Browser-Fokuswechsel
+        e.preventDefault();
         setShowPlayerList(true);
       }
     };
@@ -87,12 +93,22 @@ const GameView: React.FC = () => {
         socket.emit('move', directions);
       }
 
-      // Update Bullets
       setBullets((prev) =>
         prev
           .map((b) => ({ ...b, x: b.x + b.vx, y: b.y + b.vy }))
           .filter((b) => b.x > 0 && b.x < window.innerWidth && b.y > 0 && b.y < window.innerHeight)
       );
+
+      // ✅ Chest-Nähe prüfen
+      const currentPlayer = Object.values(players).find(p => p.username === username);
+      if (currentPlayer) {
+        const near = chests.find(
+          (chest) =>
+            !chest.opened &&
+            Math.hypot(chest.x - currentPlayer.x, chest.y - currentPlayer.y) < 50
+        );
+        setNearChestId(near?.id || null);
+      }
 
       animationFrame.current = requestAnimationFrame(move);
     };
@@ -118,32 +134,32 @@ const GameView: React.FC = () => {
         y: currentPlayer.y,
         vx,
         vy,
+      });
+    };
+
+    const handleChestOpen = () => {
+      if (nearChestId) {
+        setChests((prev) =>
+          prev.map((chest) =>
+            chest.id === nearChestId ? { ...chest, opened: true } : chest
+          )
+        );
+        setNearChestId(null);
       }
-    );
-
-    // console.log("🚀 Bullet abgeschickt:", {
-    //   x: currentPlayer.x,
-    //   y: currentPlayer.y,
-    //   vx,
-    //   vy,
-    // });
-      
-
-      // const newBullet: Bullet = {
-      //   id: crypto.randomUUID(),
-      //   x: currentPlayer.x,
-      //   y: currentPlayer.y,
-      //   vx,
-      //   vy,
-      // };
-
-      // setBullets((prev) => [...prev, newBullet]);
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('click', handleClick);
+
+    // „E“ gedrückt halten zum Öffnen
+    const interval = setInterval(() => {
+      if (keysPressed.current['e']) {
+        handleChestOpen();
+      }
+    }, 100);
+
     animationFrame.current = requestAnimationFrame(move);
 
     return () => {
@@ -152,167 +168,196 @@ const GameView: React.FC = () => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('click', handleClick);
       cancelAnimationFrame(animationFrame.current);
+      clearInterval(interval);
     };
-  }, [players, username]);
+  }, [players, username, chests, nearChestId]);
 
   useEffect(() => {
     socket.on("bulletSpawned", (bullet: Bullet) => {
       setBullets((prev) => [...prev, bullet]);
     });
-  
+
     return () => {
       socket.off("bulletSpawned");
     };
   }, []);
 
-  const [ping, setPing] = useState<number | null>(null);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const start = Date.now();
+      socket.emit('pingTest', () => {
+        const duration = Date.now() - start;
+        setPing(duration);
+      });
+    }, 2000);
 
-useEffect(() => {
-  let interval: number;
+    return () => clearInterval(interval);
+  }, []);
 
-  const measurePing = () => {
-    const start = Date.now();
-    socket.emit('pingTest', () => {
-      const duration = Date.now() - start;
-      setPing(duration);
-    });
-  };
-
-  interval = window.setInterval(measurePing, 2000); // alle 2s messen
-
-  return () => clearInterval(interval);
-}, []);
-
-  
-  
-
-return (
-  <div
-    style={{
-      position: 'relative',
-      width: '100%',
-      height: '100vh',
-      background: '#222',
-    }}
-  >
-    {/* Spieler-Render */}
-    {Object.entries(players).map(([socketId, player]) => (
-      <div
-        key={socketId}
-        style={{
-          position: 'absolute',
-          left: player.x,
-          top: player.y,
-          transform: 'translate(-50%, -50%)',
-        }}
-      >
-        {/* Name über dem Kopf */}
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100vh',
+        background: '#222',
+      }}
+    >
+      {/* Spieler-Render */}
+      {Object.entries(players).map(([socketId, player]) => (
         <div
+          key={socketId}
           style={{
-            color: 'white',
-            fontSize: '0.7rem',
-            textAlign: 'center',
-            marginBottom: 4,
+            position: 'absolute',
+            left: player.x,
+            top: player.y,
+            transform: 'translate(-50%, -50%)',
           }}
         >
-          {player.username}
-        </div>
-
-        {/* Spielfigur */}
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            background: player.username === username ? 'blue' : 'red',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: '0.8rem',
-          }}
-        />
-
-        {/* Lebensbalken */}
-        <div
-          style={{
-            marginTop: 6,
-            width: 40,
-            height: 6,
-            backgroundColor: '#444',
-            borderRadius: 4,
-            overflow: 'hidden',
-          }}
-        >
+          {/* Name */}
           <div
             style={{
-              width: `${player.health ?? 100}%`,
-              height: '100%',
-              backgroundColor:
-                (player.health ?? 100) > 50
-                  ? 'limegreen'
-                  : (player.health ?? 100) > 20
-                  ? 'orange'
-                  : 'red',
-              transition: 'width 0.1s ease-in-out',
+              color: 'white',
+              fontSize: '0.7rem',
+              textAlign: 'center',
+              marginBottom: 4,
+            }}
+          >
+            {player.username}
+          </div>
+
+          {/* Kreis */}
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              background: player.username === username ? 'blue' : 'red',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '0.8rem',
             }}
           />
+
+          {/* Lebensbalken */}
+          <div
+            style={{
+              marginTop: 6,
+              width: 40,
+              height: 6,
+              backgroundColor: '#444',
+              borderRadius: 4,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                width: `${player.health ?? 100}%`,
+                height: '100%',
+                backgroundColor:
+                  (player.health ?? 100) > 50
+                    ? 'limegreen'
+                    : (player.health ?? 100) > 20
+                    ? 'orange'
+                    : 'red',
+                transition: 'width 0.1s ease-in-out',
+              }}
+            />
+          </div>
         </div>
-      </div>
-    ))}
+      ))}
 
-    {/* Bullets */}
-    {bullets.map((b) => (
-      <div
-        key={b.id}
-        style={{
-          position: 'absolute',
-          left: b.x,
-          top: b.y,
-          width: '10px',
-          height: '10px',
-          backgroundColor: 'yellow',
-          borderRadius: '50%',
-          transform: 'translate(-50%, -50%)',
-        }}
-      />
-    ))}
+      {/* Bullets */}
+      {bullets.map((b) => (
+        <div
+          key={b.id}
+          style={{
+            position: 'absolute',
+            left: b.x,
+            top: b.y,
+            width: '10px',
+            height: '10px',
+            backgroundColor: 'yellow',
+            borderRadius: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+        />
+      ))}
 
-    {/* Spieler-Übersicht bei gedrücktem Tab */}
-    {showPlayerList && (
-      <div
-        style={{
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: 'rgba(0, 0, 0, 0.75)',
-          color: 'white',
-          padding: '16px 24px',
-          borderRadius: '10px',
-          zIndex: 9999,
-          boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6)',
-          minWidth: '250px',
-          textAlign: 'center',
-          fontSize: '0.9rem',
-        }}
-      >
-        <strong>Spieler online:</strong>
-        <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0 0' }}>
-          {Object.values(players).map((player) => (
-            <li key={player.username}>{player.username}</li>
-          ))}
-        </ul>
+      {/* Truhen */}
+      {chests
+        .filter((chest) => !chest.opened)
+        .map((chest) => (
+          <div
+            key={chest.id}
+            style={{
+              position: 'absolute',
+              left: chest.x,
+              top: chest.y,
+              width: '30px',
+              height: '30px',
+              backgroundColor: 'sienna',
+              border: '2px solid #333',
+              borderRadius: '4px',
+              transform: 'translate(-50%, -50%)',
+            }}
+          />
+        ))}
 
-        <div style={{ marginTop: '10px', fontSize: '0.8rem', opacity: 0.9 }}>
-          Ping: {ping !== null ? `${ping} ms` : '–'}
+      {/* Hinweis zum Öffnen */}
+      {nearChestId && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 80,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            padding: '10px 16px',
+            borderRadius: '8px',
+            fontSize: '1rem',
+          }}
+        >
+          Halte <strong>E</strong> zum Öffnen der Truhe
         </div>
-      </div>
-    )}
-  </div>
-);
+      )}
 
-  
+      {/* Spieler-Übersicht bei gedrücktem Tab */}
+      {showPlayerList && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            color: 'white',
+            padding: '16px 24px',
+            borderRadius: '10px',
+            zIndex: 9999,
+            boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6)',
+            minWidth: '250px',
+            textAlign: 'center',
+            fontSize: '0.9rem',
+          }}
+        >
+          <strong>Spieler online:</strong>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0 0 0' }}>
+            {Object.values(players).map((player) => (
+              <li key={player.username}>{player.username}</li>
+            ))}
+          </ul>
+
+          <div style={{ marginTop: '10px', fontSize: '0.8rem', opacity: 0.9 }}>
+            Ping: {ping !== null ? `${ping} ms` : '–'}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default GameView;

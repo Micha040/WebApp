@@ -75,7 +75,7 @@ function App() {
   const directJoin = async (lobbyId: string, pw?: string, user?: string) => {
     const nameToUse = user || username;
     
-    console.log("Joining with:", { nameToUse, lobbyId, pw });
+    // console.log("Joining with:", { nameToUse, lobbyId, pw });
 
     if (!nameToUse.trim()) {
       setError('Username fehlt!');
