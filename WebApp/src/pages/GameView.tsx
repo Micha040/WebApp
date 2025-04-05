@@ -93,6 +93,11 @@ const GameView: React.FC = () => {
         socket.emit('move', directions);
       }
 
+      socket.on('chestsUpdate', (updatedChests: Chest[]) => {
+        setChests(updatedChests);
+      });
+      
+
       setBullets((prev) =>
         prev
           .map((b) => ({ ...b, x: b.x + b.vx, y: b.y + b.vy }))
@@ -287,24 +292,23 @@ const GameView: React.FC = () => {
       ))}
 
       {/* Truhen */}
-      {chests
-        .filter((chest) => !chest.opened)
-        .map((chest) => (
+        {chests.filter((c) => !c.opened).map((c) => (
           <div
-            key={chest.id}
+            key={c.id}
             style={{
               position: 'absolute',
-              left: chest.x,
-              top: chest.y,
-              width: '30px',
-              height: '30px',
+              left: c.x,
+              top: c.y,
+              width: 30,
+              height: 30,
               backgroundColor: 'sienna',
-              border: '2px solid #333',
-              borderRadius: '4px',
+              border: '2px solid #000',
               transform: 'translate(-50%, -50%)',
+              borderRadius: 4,
             }}
           />
         ))}
+
 
       {/* Hinweis zum Öffnen */}
       {nearChestId && (
