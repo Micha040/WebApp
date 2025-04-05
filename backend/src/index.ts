@@ -539,6 +539,16 @@ io.on("connection", (socket) => {
 
 // Kollisionen prüfen & Leben abziehen
 setInterval(() => {
+  // Kugeln bewegen
+  bullets.forEach((bullet) => {
+    bullet.x += bullet.vx;
+    bullet.y += bullet.vy;
+  });
+
+  const playerRadius = 20;
+  const bulletRadius = 5;
+  const collisionDistance = playerRadius + bulletRadius;
+
   bullets.forEach((bullet, index) => {
     for (const [socketId, player] of Object.entries(connectedPlayers)) {
       // Spieler darf nicht seine eigene Kugel treffen
@@ -548,17 +558,14 @@ setInterval(() => {
       const dy = player.y - bullet.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      const playerRadius = 20;
-      const bulletRadius = 5;
-
-      if (distance < playerRadius + bulletRadius) {
-        player.health = Math.max(player.health - 2, 0); // ziehe 2 Leben ab
-        bullets.splice(index, 1); // entferne Kugel
+      if (distance < collisionDistance) {
+        player.health = Math.max(player.health - 2, 0);
+        bullets.splice(index, 1);
         console.log(
           `💥 ${player.username} wurde getroffen! ➖ 2 HP (neu: ${player.health})`
         );
         io.emit("playersUpdate", connectedPlayers);
-        break; // nur 1 Treffer pro Kugel
+        break; // Nur 1 Treffer pro Kugel
       }
     }
   });
