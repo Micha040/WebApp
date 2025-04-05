@@ -373,8 +373,8 @@ app.get("/lobby/:lobbyId/host", async (req, res) => {
 app.post("/lobby/start", async (req, res) => {
   const { lobbyId, username, skin } = req.body;
 
-  console.log("📥 Empfangen:", { lobbyId, username });
-  console.log("🔧 Skin-Daten empfangen:", JSON.stringify(skin, null, 2));
+  // console.log("📥 Empfangen:", { lobbyId, username });
+  // console.log("🔧 Skin-Daten empfangen:", JSON.stringify(skin, null, 2));
 
   const { data: player, error: playerError } = await supabase
     .from("players")
@@ -418,7 +418,7 @@ app.post("/lobby/start", async (req, res) => {
       .json({ error: "Spiel konnte nicht gestartet werden" });
   }
 
-  console.log("✅ Spiel erstellt + Skin gespeichert!");
+  // console.log("✅ Spiel erstellt + Skin gespeichert!");
   await supabase.channel(`lobby-${lobbyId}`).send({
     type: "broadcast",
     event: "game-started",
@@ -473,15 +473,15 @@ type Bullet = {
 const bullets: Bullet[] = [];
 
 io.on("connection", (socket) => {
-  console.log("🟢 Neue Socket-Verbindung:", socket.id); // ← ganz oben
-  console.log(`🟢 Spieler verbunden: ${socket.id}`);
+  // console.log("🟢 Neue Socket-Verbindung:", socket.id); // ← ganz oben
+  // console.log(`🟢 Spieler verbunden: ${socket.id}`);
 
   socket.onAny((event, ...args) => {
-    console.log(`📡 [SOCKET EVENT] ${event}`, args);
+    // console.log(`📡 [SOCKET EVENT] ${event}`, args);
   });
 
   socket.on("join", (data: { username: string }) => {
-    console.log("📡 Spieler gejoint (empfangen):", data.username);
+    // console.log("📡 Spieler gejoint (empfangen):", data.username);
     connectedPlayers[socket.id] = {
       x: 100 + Math.random() * 200,
       y: 100 + Math.random() * 200,
@@ -541,26 +541,24 @@ io.on("connection", (socket) => {
 setInterval(() => {
   bullets.forEach((bullet, index) => {
     for (const [socketId, player] of Object.entries(connectedPlayers)) {
-      // 👉 Eigene Kugel trifft nicht
+      // Spieler darf nicht seine eigene Kugel treffen
       if (bullet.ownerId === socketId) continue;
 
       const dx = player.x - bullet.x;
       const dy = player.y - bullet.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      const hit =
-        bullet.x > player.x - 20 &&
-        bullet.x < player.x + 20 &&
-        bullet.y > player.y - 20 &&
-        bullet.y < player.y + 20;
+      const playerRadius = 20;
+      const bulletRadius = 5;
 
-      if (hit) {
-        player.health = Math.max(player.health - 1, 0);
-        bullets.splice(index, 1);
+      if (distance < playerRadius + bulletRadius) {
+        player.health = Math.max(player.health - 2, 0); // ziehe 2 Leben ab
+        bullets.splice(index, 1); // entferne Kugel
         console.log(
-          `💥 ${player.username} wurde getroffen! HP: ${player.health}`
+          `💥 ${player.username} wurde getroffen! ➖ 2 HP (neu: ${player.health})`
         );
         io.emit("playersUpdate", connectedPlayers);
+        break; // nur 1 Treffer pro Kugel
       }
     }
   });
