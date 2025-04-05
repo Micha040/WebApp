@@ -94,14 +94,7 @@ const GameView: React.FC = () => {
         socket.emit('move', directions);
       }
 
-      socket.on('chestsUpdate', (updatedChests: Chest[]) => {
-        setChests((prevChests) =>
-          prevChests.map((chest) => {
-            const updated = updatedChests.find((c) => c.id === chest.id);
-            return updated ? { ...chest, opened: updated.opened } : chest;
-          })
-        );
-      });
+      
       
       
 
@@ -128,6 +121,9 @@ const GameView: React.FC = () => {
     const handleMouseMove = (e: MouseEvent) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
     };
+
+    
+    
 
     const handleClick = () => {
       const currentPlayer = Object.values(players).find(p => p.username === username);
@@ -213,6 +209,16 @@ const GameView: React.FC = () => {
     }, 2000);
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    socket.on('chestsUpdate', (updatedChests: Chest[]) => {
+      setChests(updatedChests);
+    });
+  
+    return () => {
+      socket.off('chestsUpdate');
+    };
   }, []);
 
   return (
