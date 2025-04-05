@@ -35,10 +35,7 @@ const GameView: React.FC = () => {
   const [players, setPlayers] = useState<Record<string, Player>>({});
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [username, setUsername] = useState<string>('');
-  const [chests, setChests] = useState<Chest[]>([
-    { id: 'chest-1', x: 300, y: 300, opened: false },
-    { id: 'chest-2', x: 600, y: 400, opened: false },
-  ]);
+  const [chests, setChests] = useState<Chest[]>([]);
   const [nearChestId, setNearChestId] = useState<string | null>(null);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
