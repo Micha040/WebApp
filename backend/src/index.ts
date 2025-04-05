@@ -475,6 +475,7 @@ const bullets: Bullet[] = [];
 io.on("connection", (socket) => {
   // console.log("🟢 Neue Socket-Verbindung:", socket.id); // ← ganz oben
   // console.log(`🟢 Spieler verbunden: ${socket.id}`);
+  socket.emit("chestsUpdate", chests);
 
   socket.onAny((event, ...args) => {
     // console.log(`📡 [SOCKET EVENT] ${event}`, args);
@@ -535,6 +536,24 @@ io.on("connection", (socket) => {
   socket.on("pingTest", (cb) => {
     cb(); // sofortige Antwort
   });
+
+  socket.on("openChest", (chestId: string) => {
+    const player = connectedPlayers[socket.id];
+    if (!player) return;
+
+    const chest = chests.find((c) => c.id === chestId && !c.opened);
+    if (!chest) return;
+
+    const dx = player.x - chest.x;
+    const dy = player.y - chest.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist < 50) {
+      chest.opened = true;
+      io.emit("chestsUpdate", chests);
+      console.log(`🧰 ${player.username} hat Truhe ${chest.id} geöffnet`);
+    }
+  });
 });
 
 // Kollisionen prüfen & Leben abziehen
@@ -570,6 +589,18 @@ setInterval(() => {
     }
   });
 }, 50);
+
+type Chest = {
+  id: string;
+  x: number;
+  y: number;
+  opened: boolean;
+};
+
+const chests: Chest[] = [
+  { id: "chest-1", x: 300, y: 300, opened: false },
+  { id: "chest-2", x: 600, y: 200, opened: false },
+];
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
