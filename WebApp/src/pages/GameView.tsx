@@ -142,24 +142,24 @@ const GameView: React.FC = () => {
       });
     };
 
-    // const handleChestOpen = () => {
-    //   if (nearChestId) {
-    //     socket.emit("openChest", nearChestId);
-    //     setChests((prev) =>
-    //       prev.map((chest) =>
-    //         chest.id === nearChestId ? { ...chest, opened: true } : chest
-    //       )
-    //     );
-    //     setNearChestId(null);
-    //   }
-    // };
-
     const handleChestOpen = () => {
       if (nearChestId) {
-        socket.emit("openChest", nearChestId); // 🔥 Synchronisiert mit Server
+        socket.emit("openChest", nearChestId);
+        setChests((prev) =>
+          prev.map((chest) =>
+            chest.id === nearChestId ? { ...chest, opened: true } : chest
+          )
+        );
         setNearChestId(null);
       }
     };
+
+    // const handleChestOpen = () => {
+    //   if (nearChestId) {
+    //     socket.emit("openChest", nearChestId); // 🔥 Synchronisiert mit Server
+    //     setNearChestId(null);
+    //   }
+    // };
     
 
     window.addEventListener('keydown', handleKeyDown);
