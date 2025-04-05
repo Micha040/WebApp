@@ -37,7 +37,7 @@ const GameView: React.FC = () => {
   const [username, setUsername] = useState<string>('');
   const [chests, setChests] = useState<Chest[]>([
     { id: 'chest-1', x: 300, y: 300, opened: false },
-    { id: 'chest-2', x: 600, y: 400, opened: false },
+    { id: 'chest-2', x: 600, y: 200, opened: false },
   ]);
   
   const [nearChestId, setNearChestId] = useState<string | null>(null);
