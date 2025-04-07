@@ -38,7 +38,7 @@ export default function SkinEditor({
 
   useEffect(() => {
     const currentSkin: Skin = {
-      ball: ballOptions[hatIndex],
+      ball: `sprite_${hatIndex + 1}`,
       eyes: eyesOptions[eyesIndex],
       mouth: mouthOptions[mouthIndex],
       top: topOptions[topIndex] || 'none',
