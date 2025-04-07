@@ -56,7 +56,7 @@ app.post("/lobby", async (req, res) => {
             lobby_id: lobbyId,
             top: "none",
             ball: "sprite_1",
-            eyes: "Eyes_Default",
+            eyes: "sprite_1",
             mouth: "Mouth_Default",
         },
     ]);
@@ -121,7 +121,7 @@ app.post("/lobby/join", async (req, res) => {
                 lobby_id: lobbyId,
                 top: "none",
                 ball: "sprite_1",
-                eyes: "Eyes_Default",
+                eyes: "sprite_1",
                 mouth: "Mouth_Default",
             },
         ]);
