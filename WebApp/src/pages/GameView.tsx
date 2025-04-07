@@ -51,6 +51,16 @@ type GroundItem = {
   y: number;
 };
 
+type ItemPosition = {
+  x: number;
+  y: number;
+};
+
+type ItemWithPosition = {
+  item: Item;
+  position: ItemPosition;
+};
+
 const socket = io(import.meta.env.VITE_API_URL, {
   withCredentials: true,
   transports: ['websocket'],
@@ -324,30 +334,40 @@ const GameView: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    socket.on("itemsSpawned", (items: Item[], chestPosition: { x: number, y: number }) => {
-      // Erstelle GroundItems mit zufälligen Offsets um die Truhe
-      const newGroundItems = items.map(item => ({
+    socket.on("itemsSpawned", (itemsWithPositions: ItemWithPosition[]) => {
+      // Erstelle neue GroundItems mit den berechneten Positionen
+      const newGroundItems = itemsWithPositions.map(({ item, position }) => ({
         item,
-        x: chestPosition.x + (Math.random() - 0.5) * 40, // ±20 Pixel X-Offset
-        y: chestPosition.y + (Math.random() - 0.5) * 40  // ±20 Pixel Y-Offset
+        x: position.x,
+        y: position.y,
       }));
+      
       setGroundItems(prev => [...prev, ...newGroundItems]);
     });
 
     return () => {
       socket.off("itemsSpawned");
     };
-  }, []);
+  }, [socket]);
 
   // Prüfe Nähe zu Items
   useEffect(() => {
     const currentPlayer = Object.values(players).find(p => p.username === username);
     if (!currentPlayer) return;
 
-    const nearItem = groundItems.find(
-      (groundItem) => Math.hypot(groundItem.x - currentPlayer.x, groundItem.y - currentPlayer.y) < 50
-    );
-    setSelectedGroundItem(nearItem || null);
+    // Finde das nächste Item
+    let closestItem: GroundItem | null = null;
+    let closestDistance = Infinity;
+
+    groundItems.forEach(groundItem => {
+      const distance = Math.hypot(groundItem.x - currentPlayer.x, groundItem.y - currentPlayer.y);
+      if (distance < 50 && distance < closestDistance) {
+        closestItem = groundItem;
+        closestDistance = distance;
+      }
+    });
+
+    setSelectedGroundItem(closestItem);
   }, [players, username, groundItems]);
 
   return (
@@ -541,13 +561,11 @@ const GameView: React.FC = () => {
             top: groundItem.y,
             width: '30px',
             height: '30px',
-            cursor: 'pointer',
             transition: 'transform 0.2s',
             transform: selectedGroundItem === groundItem 
               ? 'translate(-50%, -50%) scale(1.2)' 
               : 'translate(-50%, -50%)',
           }}
-          onClick={() => setSelectedGroundItem(groundItem)}
         >
           <img
             src={groundItem.item.icon_url}
