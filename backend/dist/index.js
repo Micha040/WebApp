@@ -651,6 +651,62 @@ const chests = [
         opened: false,
         items: [],
     },
+    {
+        id: "chest-3",
+        x: 150,
+        y: 150,
+        opened: false,
+        items: [],
+    },
+    {
+        id: "chest-4",
+        x: 800,
+        y: 400,
+        opened: false,
+        items: [],
+    },
+    {
+        id: "chest-5",
+        x: 400,
+        y: 600,
+        opened: false,
+        items: [],
+    },
+    {
+        id: "chest-6",
+        x: 700,
+        y: 700,
+        opened: false,
+        items: [],
+    },
+    {
+        id: "chest-7",
+        x: 200,
+        y: 500,
+        opened: false,
+        items: [],
+    },
+    {
+        id: "chest-8",
+        x: 900,
+        y: 100,
+        opened: false,
+        items: [],
+    },
+    {
+        id: "chest-9",
+        x: 500,
+        y: 400,
+        opened: false,
+        items: [],
+    },
+    {
+        id: "chest-10",
+        x: 100,
+        y: 700,
+        opened: false,
+        items: [],
+    },
 ];
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
