@@ -458,7 +458,16 @@ const io = new Server(server, {
 // ✅ Spielerliste nach socket.id
 const connectedPlayers: Record<
   string,
-  { x: number; y: number; username: string; health: number; skin: any }
+  {
+    x: number;
+    y: number;
+    username: string;
+    health: number;
+    skin: any;
+    shield?: number;
+    speedBoost?: number;
+    damageBoost?: number;
+  }
 > = {};
 
 type Bullet = {
@@ -522,8 +531,13 @@ io.on("connection", (socket) => {
     const player = connectedPlayers[socket.id];
     if (!player) return;
 
-    // Feste Geschwindigkeit pro Frame
-    const speed = 4;
+    // Basis-Geschwindigkeit
+    let speed = 4;
+
+    // Wende Geschwindigkeitsboost an, falls aktiv
+    if (player.speedBoost) {
+      speed *= 1 + player.speedBoost / 100;
+    }
 
     // Berechne die Bewegungsrichtung
     let dx = 0;
@@ -534,7 +548,7 @@ io.on("connection", (socket) => {
     if (directions.includes("left")) dx -= 1;
     if (directions.includes("right")) dx += 1;
 
-    // Normalisiere die Diagonale (damit diagonale Bewegung nicht schneller ist)
+    // Normalisiere die Diagonale
     if (dx !== 0 && dy !== 0) {
       const length = Math.sqrt(dx * dx + dy * dy);
       dx = dx / length;
@@ -583,10 +597,59 @@ io.on("connection", (socket) => {
         io.emit("playersUpdate", connectedPlayers);
         break;
       case "shield":
-        // Hier können wir einen temporären Schild-Status hinzufügen
+        // Aktiviere temporären Schild für 10 Sekunden
+        player.shield = itemData.value;
         console.log(
           `🛡️ ${player.username} hat einen Schild aktiviert! (${itemData.value} Schaden blockiert)`
         );
+        io.emit("playersUpdate", connectedPlayers);
+
+        // Deaktiviere Schild nach 10 Sekunden
+        setTimeout(() => {
+          if (connectedPlayers[socket.id]) {
+            delete connectedPlayers[socket.id].shield;
+            io.emit("playersUpdate", connectedPlayers);
+            console.log(`🛡️ ${player.username}'s Schild ist abgelaufen!`);
+          }
+        }, 10000);
+        break;
+      case "speed":
+        // Aktiviere Geschwindigkeitsboost für 10 Sekunden
+        player.speedBoost = itemData.value;
+        console.log(
+          `⚡ ${player.username} hat einen Geschwindigkeitsboost aktiviert! (+${itemData.value}% Geschwindigkeit)`
+        );
+        io.emit("playersUpdate", connectedPlayers);
+
+        // Deaktiviere Boost nach 10 Sekunden
+        setTimeout(() => {
+          if (connectedPlayers[socket.id]) {
+            delete connectedPlayers[socket.id].speedBoost;
+            io.emit("playersUpdate", connectedPlayers);
+            console.log(
+              `⚡ ${player.username}'s Geschwindigkeitsboost ist abgelaufen!`
+            );
+          }
+        }, 10000);
+        break;
+      case "damage":
+        // Aktiviere Schadensboost für 10 Sekunden
+        player.damageBoost = itemData.value;
+        console.log(
+          `💥 ${player.username} hat einen Schadensboost aktiviert! (+${itemData.value}% Schaden)`
+        );
+        io.emit("playersUpdate", connectedPlayers);
+
+        // Deaktiviere Boost nach 10 Sekunden
+        setTimeout(() => {
+          if (connectedPlayers[socket.id]) {
+            delete connectedPlayers[socket.id].damageBoost;
+            io.emit("playersUpdate", connectedPlayers);
+            console.log(
+              `💥 ${player.username}'s Schadensboost ist abgelaufen!`
+            );
+          }
+        }, 10000);
         break;
     }
   });
@@ -647,7 +710,6 @@ io.on("connection", (socket) => {
 
 // Kollisionen prüfen & Leben abziehen
 setInterval(() => {
-  // Kugeln bewegen
   bullets.forEach((bullet) => {
     bullet.x += bullet.vx;
     bullet.y += bullet.vy;
@@ -659,7 +721,6 @@ setInterval(() => {
 
   bullets.forEach((bullet, index) => {
     for (const [socketId, player] of Object.entries(connectedPlayers)) {
-      // Spieler darf nicht seine eigene Kugel treffen
       if (bullet.ownerId === socketId) continue;
 
       const dx = player.x - bullet.x;
@@ -667,13 +728,38 @@ setInterval(() => {
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance < collisionDistance) {
-        player.health = Math.max(player.health - 2, 0);
+        // Basis-Schaden
+        let damage = 2;
+
+        // Erhöhe Schaden, wenn Schütze einen Schadensboost hat
+        const shooter = connectedPlayers[bullet.ownerId];
+        if (shooter && shooter.damageBoost) {
+          damage *= 1 + shooter.damageBoost / 100;
+        }
+
+        // Reduziere Schaden durch Schild
+        if (player.shield) {
+          const blockedDamage = Math.min(damage, player.shield);
+          damage -= blockedDamage;
+          player.shield -= blockedDamage;
+
+          if (player.shield <= 0) {
+            delete player.shield;
+          }
+        }
+
+        // Wende finalen Schaden an
+        player.health = Math.max(player.health - damage, 0);
         bullets.splice(index, 1);
+
         console.log(
-          `💥 ${player.username} wurde getroffen! ➖ 2 HP (neu: ${player.health})`
+          `💥 ${player.username} wurde getroffen! ➖ ${damage.toFixed(
+            1
+          )} HP (neu: ${player.health})`
         );
+
         io.emit("playersUpdate", connectedPlayers);
-        break; // Nur 1 Treffer pro Kugel
+        break;
       }
     }
   });
