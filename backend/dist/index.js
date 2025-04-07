@@ -367,13 +367,33 @@ io.on("connection", (socket) => {
     socket.onAny((event, ...args) => {
         // console.log(`📡 [SOCKET EVENT] ${event}`, args);
     });
-    socket.on("join", (data) => {
+    socket.on("join", async (data) => {
         // console.log("📡 Spieler gejoint (empfangen):", data.username);
+        // Hole Skin-Informationen aus der Datenbank
+        const { data: playerData, error: playerError } = await supabase
+            .from("players")
+            .select("id")
+            .eq("username", data.username)
+            .single();
+        if (playerError) {
+            console.error("❌ Fehler beim Laden des Spielers:", playerError);
+            return;
+        }
+        const { data: skinData, error: skinError } = await supabase
+            .from("skins")
+            .select("ball, eyes, mouth, top")
+            .eq("player_id", playerData.id)
+            .single();
+        if (skinError) {
+            console.error("❌ Fehler beim Laden des Skins:", skinError);
+            return;
+        }
         connectedPlayers[socket.id] = {
             x: 100 + Math.random() * 200,
             y: 100 + Math.random() * 200,
             username: data.username,
             health: 100,
+            skin: skinData,
         };
         io.emit("playersUpdate", connectedPlayers);
     });
