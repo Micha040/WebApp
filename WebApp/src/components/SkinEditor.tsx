@@ -8,7 +8,7 @@ export type Skin = {
   };
   
 
-  const ballOptions = ['BlueBall', 'GreenBall', 'RedBall'];
+  const ballOptions = Array.from({length: 16}, (_, i) => `sprite_${i + 1}`);
   const eyesOptions = ['Eyes_Default', 'Eyes_Confused'];
   const mouthOptions = ['Mouth_Default', 'Mouth_Smile'];
   const topOptions = ['none']; // kannst du später füllen
