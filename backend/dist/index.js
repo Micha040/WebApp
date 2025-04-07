@@ -469,9 +469,12 @@ io.on("connection", (socket) => {
             // Generiere zufällige Items für die Truhe
             chest.items = generateRandomItems();
             io.emit("chestsUpdate", chests);
-            // Sende die Items an den Spieler
+            // Sende die Items an den Spieler zusammen mit der Truhenposition
             if (chest.items.length > 0) {
-                io.to(socket.id).emit("itemsSpawned", chest.items);
+                io.to(socket.id).emit("itemsSpawned", chest.items, {
+                    x: chest.x,
+                    y: chest.y,
+                });
             }
             console.log(`🧰 ${player.username} hat Truhe ${chest.id} geöffnet und ${chest.items.length} Items gefunden`);
         }
