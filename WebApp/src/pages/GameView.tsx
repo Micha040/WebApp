@@ -278,6 +278,26 @@ const GameView: React.FC = () => {
           newInventory2[selectedSlot] = { item: null, quantity: 0 };
           setInventory(newInventory2);
           break;
+        case 'speed':
+          socket.emit('useItem', {
+            type: 'speed',
+            value: selectedItem.effect_value
+          });
+          // Item aus Inventar entfernen
+          const newInventory3 = [...inventory];
+          newInventory3[selectedSlot] = { item: null, quantity: 0 };
+          setInventory(newInventory3);
+          break;
+        case 'damage':
+          socket.emit('useItem', {
+            type: 'damage',
+            value: selectedItem.effect_value
+          });
+          // Item aus Inventar entfernen
+          const newInventory4 = [...inventory];
+          newInventory4[selectedSlot] = { item: null, quantity: 0 };
+          setInventory(newInventory4);
+          break;
       }
     };
 
