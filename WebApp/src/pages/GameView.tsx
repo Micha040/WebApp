@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import EffectTimer from '../components/EffectTimer';
 // import { useParams } from 'react-router-dom';
 
 type Player = {
@@ -61,6 +62,12 @@ type ItemWithPosition = {
   position: ItemPosition;
 };
 
+type Effect = {
+  type: 'shield' | 'speed' | 'damage';
+  endTime: number;
+  slot: number;
+};
+
 const socket = io(import.meta.env.VITE_API_URL, {
   withCredentials: true,
   transports: ['websocket'],
@@ -88,6 +95,7 @@ const GameView: React.FC = () => {
   const [selectedItemIndex, setSelectedItemIndex] = useState<number>(0);
   const [groundItems, setGroundItems] = useState<GroundItem[]>([]);
   const [selectedGroundItem, setSelectedGroundItem] = useState<GroundItem | null>(null);
+  const [activeEffects, setActiveEffects] = useState<Effect[]>([]);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrame = useRef<number>(0);
@@ -257,49 +265,66 @@ const GameView: React.FC = () => {
       const selectedItem = inventory[selectedSlot].item;
       if (!selectedItem) return;
 
+      const effectDuration = 10000; // 10 Sekunden
+      const now = Date.now();
+
       switch (selectedItem.type) {
         case 'heal':
           socket.emit('useItem', {
             type: 'heal',
             value: selectedItem.effect_value
           });
-          // Item aus Inventar entfernen
-          const newInventory = [...inventory];
-          newInventory[selectedSlot] = { item: null, quantity: 0 };
-          setInventory(newInventory);
           break;
         case 'shield':
           socket.emit('useItem', {
             type: 'shield',
-            value: selectedItem.effect_value
+            value: selectedItem.effect_value,
+            duration: effectDuration
           });
-          // Item aus Inventar entfernen
-          const newInventory2 = [...inventory];
-          newInventory2[selectedSlot] = { item: null, quantity: 0 };
-          setInventory(newInventory2);
+          setActiveEffects(prev => [
+            ...prev.filter(e => e.type !== 'shield'),
+            { type: 'shield', endTime: now + effectDuration, slot: selectedSlot }
+          ]);
           break;
         case 'speed':
           socket.emit('useItem', {
             type: 'speed',
-            value: selectedItem.effect_value
+            value: selectedItem.effect_value,
+            duration: effectDuration
           });
-          // Item aus Inventar entfernen
-          const newInventory3 = [...inventory];
-          newInventory3[selectedSlot] = { item: null, quantity: 0 };
-          setInventory(newInventory3);
+          setActiveEffects(prev => [
+            ...prev.filter(e => e.type !== 'speed'),
+            { type: 'speed', endTime: now + effectDuration, slot: selectedSlot }
+          ]);
           break;
         case 'damage':
           socket.emit('useItem', {
             type: 'damage',
-            value: selectedItem.effect_value
+            value: selectedItem.effect_value,
+            duration: effectDuration
           });
-          // Item aus Inventar entfernen
-          const newInventory4 = [...inventory];
-          newInventory4[selectedSlot] = { item: null, quantity: 0 };
-          setInventory(newInventory4);
+          setActiveEffects(prev => [
+            ...prev.filter(e => e.type !== 'damage'),
+            { type: 'damage', endTime: now + effectDuration, slot: selectedSlot }
+          ]);
           break;
       }
+
+      // Item aus Inventar entfernen
+      const newInventory = [...inventory];
+      newInventory[selectedSlot] = { item: null, quantity: 0 };
+      setInventory(newInventory);
     };
+
+    // Effekte aufräumen
+    useEffect(() => {
+      const interval = setInterval(() => {
+        const now = Date.now();
+        setActiveEffects(prev => prev.filter(effect => effect.endTime > now));
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }, []);
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
@@ -576,6 +601,7 @@ const GameView: React.FC = () => {
           <div
             key={index}
             style={{
+              position: 'relative',  // Hinzugefügt für absolute Positionierung der Timer
               width: '50px',
               height: '50px',
               border: `2px solid ${selectedSlot === index ? '#fff' : '#666'}`,
@@ -608,6 +634,10 @@ const GameView: React.FC = () => {
               }}>
                 {slot.quantity}
               </div>
+            )}
+            {/* Effekt-Timer */}
+            {activeEffects.map(effect => 
+              effect.slot === index && <EffectTimer key={effect.type} effect={effect} />
             )}
           </div>
         ))}
