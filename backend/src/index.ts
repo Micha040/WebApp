@@ -186,14 +186,32 @@ app.delete("/lobby/:id/leave/:username", async (req, res) => {
       .json({ error: "Fehler beim Entfernen des Spielers" });
   }
 
-  // Wenn keine Spieler mehr übrig -> Lobby löschen
-  const { data: remainingPlayers } = await supabase
+  // Prüfe, ob noch Spieler in der Lobby sind
+  const { data: remainingPlayers, error: countError } = await supabase
     .from("players")
     .select("*")
     .eq("lobby_id", id);
 
-  if (remainingPlayers?.length === 0) {
-    await supabase.from("lobbys").delete().eq("id", id);
+  if (countError) {
+    console.error("Fehler beim Zählen der verbleibenden Spieler:", countError);
+    return res.status(500).json({ error: "Fehler beim Zählen der Spieler" });
+  }
+
+  // Wenn keine Spieler mehr übrig sind, lösche die Lobby
+  if (remainingPlayers.length === 0) {
+    const { error: deleteError } = await supabase
+      .from("lobbys")
+      .delete()
+      .eq("id", id);
+
+    if (deleteError) {
+      console.error("Fehler beim Löschen der Lobby:", deleteError);
+      return res.status(500).json({ error: "Fehler beim Löschen der Lobby" });
+    }
+
+    console.log(
+      `Lobby ${id} wurde automatisch gelöscht, da keine Spieler mehr übrig sind.`
+    );
   }
 
   res.json({ success: true });
