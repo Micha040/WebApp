@@ -715,6 +715,7 @@ setInterval(() => {
           damage *= 1 + shooter.damageBoost / 100;
         }
 
+        //tesr
         // Reduziere Schaden durch Schild
         if (player.shield) {
           const blockedDamage = Math.min(damage, player.shield);
