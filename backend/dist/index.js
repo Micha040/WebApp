@@ -466,11 +466,14 @@ io.on("connection", (socket) => {
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 50) {
             chest.opened = true;
+            // Generiere zufällige Items für die Truhe
+            chest.items = generateRandomItems();
             io.emit("chestsUpdate", chests);
-            if (chest.item) {
-                io.to(socket.id).emit("itemSpawned", chest.item);
+            // Sende die Items an den Spieler
+            if (chest.items.length > 0) {
+                io.to(socket.id).emit("itemsSpawned", chest.items);
             }
-            console.log(`🧰 ${player.username} hat Truhe ${chest.id} geöffnet`);
+            console.log(`🧰 ${player.username} hat Truhe ${chest.id} geöffnet und ${chest.items.length} Items gefunden`);
         }
     });
 });
@@ -502,34 +505,78 @@ setInterval(() => {
         }
     });
 }, 50);
+// Liste aller möglichen Items
+const possibleItems = [
+    {
+        id: "heal-potion-1",
+        name: "Heiltrank",
+        type: "heal",
+        effect_value: 20,
+        description: "Heilt 20 HP",
+        icon_url: "/items/heal_potion.png",
+    },
+    {
+        id: "shield-1",
+        name: "Schutzschild",
+        type: "shield",
+        effect_value: 50,
+        description: "Blockiert 50 Schaden",
+        icon_url: "/items/shield.png",
+    },
+    {
+        id: "speed-boost-1",
+        name: "Geschwindigkeitsboost",
+        type: "speed",
+        effect_value: 30,
+        description: "Erhöht Geschwindigkeit um 30%",
+        icon_url: "/items/speed_boost.png",
+    },
+    {
+        id: "damage-boost-1",
+        name: "Schadensboost",
+        type: "damage",
+        effect_value: 25,
+        description: "Erhöht Schaden um 25%",
+        icon_url: "/items/damage_boost.png",
+    },
+];
+// Funktion zum Generieren zufälliger Items
+function generateRandomItems() {
+    // 50/50 Chance für 1 oder 2 Items
+    const itemCount = Math.random() < 0.5 ? 1 : 2;
+    const items = [];
+    // Kopiere die möglichen Items, damit wir sie zufällig auswählen können
+    const availableItems = [...possibleItems];
+    for (let i = 0; i < itemCount; i++) {
+        if (availableItems.length === 0)
+            break;
+        // Wähle ein zufälliges Item aus
+        const randomIndex = Math.floor(Math.random() * availableItems.length);
+        const selectedItem = availableItems[randomIndex];
+        // Erstelle eine Kopie des Items mit einer neuen ID
+        items.push({
+            ...selectedItem,
+            id: `${selectedItem.id}-${crypto.randomUUID()}`,
+        });
+        // Entferne das ausgewählte Item aus der verfügbaren Liste
+        availableItems.splice(randomIndex, 1);
+    }
+    return items;
+}
 const chests = [
     {
         id: "chest-1",
         x: 300,
         y: 300,
         opened: false,
-        item: {
-            id: "heal-potion-1",
-            name: "Heiltrank",
-            type: "heal",
-            effect_value: 20,
-            description: "Heilt 20 HP",
-            icon_url: "/items/heal_potion.png",
-        },
+        items: [],
     },
     {
         id: "chest-2",
         x: 600,
         y: 200,
         opened: false,
-        item: {
-            id: "shield-1",
-            name: "Schutzschild",
-            type: "shield",
-            effect_value: 50,
-            description: "Blockiert 50 Schaden",
-            icon_url: "/items/shield.png",
-        },
+        items: [],
     },
 ];
 const PORT = process.env.PORT || 3000;
