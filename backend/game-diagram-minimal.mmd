@@ -1,0 +1,51 @@
+classDiagram
+    %% Server
+    class Server {
+        +handleConnections()
+        +handleGameLogic()
+        +handleDatabase()
+    }
+
+    %% Hauptspielkomponenten
+    class Game {
+        +players
+        +bullets
+        +chests
+        +handleCollisions()
+        +handleItems()
+    }
+
+    class Player {
+        +username
+        +x
+        +y
+        +health
+        +inventory
+        +skin
+    }
+
+    class Item {
+        +type
+        +effect
+    }
+
+    %% Frontend-Views
+    class GameView {
+        +renderGame()
+        +handleInput()
+        +handleEffects()
+    }
+
+    class LobbyView {
+        +showPlayers()
+        +handleGameStart()
+    }
+
+    %% Verbindungen
+    Server --> Game : verwaltet
+    Game --> Player : enthält
+    Player --> Item : besitzt
+    GameView --> Game : zeigt
+    LobbyView --> Game : startet
+    Server <--> GameView : WebSocket
+    Server <--> LobbyView : WebSocket 

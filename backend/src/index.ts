@@ -9,9 +9,9 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-  origin: ["https://web-app-red-nine.vercel.app"], // 👈 dein Vercel-Frontend
-  methods: ["GET", "POST"],
-  credentials: true, // 👈 wichtig für WebSocket-Kompatibilität
+  origin: ["https://web-app-red-nine.vercel.app"],
+  methods: ["GET", "POST", "DELETE", "PATCH"],
+  credentials: true,
   allowedHeaders: ["Content-Type"],
 };
 

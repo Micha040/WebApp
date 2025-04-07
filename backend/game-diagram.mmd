@@ -5,10 +5,17 @@ classDiagram
         +number y
         +string username
         +number health
-        +Object skin
+        +Skin skin
         +number? shield
         +number? speedBoost
         +number? damageBoost
+    }
+
+    class Skin {
+        +string ball
+        +string eyes
+        +string mouth
+        +string top
     }
 
     class Item {
@@ -18,6 +25,16 @@ classDiagram
         +number effect_value
         +string description
         +string icon_url
+    }
+
+    class ItemPosition {
+        +number x
+        +number y
+    }
+
+    class ItemWithPosition {
+        +Item item
+        +ItemPosition position
     }
 
     class Chest {
@@ -87,7 +104,7 @@ classDiagram
 
     class LoginView {
         +string username
-        +Object selectedSkin
+        +Skin selectedSkin
         +handleLogin()
         +handleSkinChange()
     }
@@ -101,33 +118,62 @@ classDiagram
     }
 
     class LobbyView {
+        %% States
         +string lobbyId
         +Lobby currentLobby
         +Player[] players
         +boolean isHost
+        +LobbySettings settings
+        +boolean showChat
+        +boolean hasNewMessages
+        +string toastMessage
+        %% Methods
         +handleStartGame()
         +handleLeaveLobby()
         +handleKickPlayer()
         +handleGameModeChange()
+        +handleSettingChange()
     }
 
     class GameView {
-        +Record~string, Player~ players
+        %% States
+        +Object players
         +Bullet[] bullets
         +string username
         +Chest[] chests
         +InventorySlot[] inventory
         +GroundItem[] groundItems
+        +Effect[] activeEffects
+        +VisualEffect[] visualEffects
+        +number selectedSlot
+        +number selectedItemIndex
+        +boolean showPlayerList
+        +number ping
+        +string|null nearChestId
+        +GroundItem|null selectedGroundItem
+        %% Refs
+        +Object keysPressed
+        +Object mousePos
+        +number animationFrame
+        %% Methods
         +handleKeyDown()
         +handleMouseMove()
         +handleClick()
         +handleItemUse()
         +handleChestOpen()
         +handleItemPickup()
+        +renderVisualEffect()
+        %% Socket Events
+        +onPlayersUpdate()
+        +onBulletSpawned()
+        +onChestsUpdate()
+        +onItemsSpawned()
+        +onItemRemoved()
+        +onItemDropped()
     }
 
     class InventorySlot {
-        +Item item
+        +Item|null item
         +number quantity
     }
 
@@ -144,6 +190,156 @@ classDiagram
         +disconnect()
     }
 
+    class Effect {
+        +string type
+        +number endTime
+        +number slot
+    }
+
+    class VisualEffect {
+        +string type
+        +string playerId
+        +number endTime
+        +renderEffect()
+    }
+
+    class LobbySettings {
+        +number roundTime
+        +number maxPlayers
+        +string difficulty
+        +boolean allowHints
+    }
+
+    class SkinEditor {
+        %% States
+        +number hatIndex
+        +number eyesIndex
+        +number mouthIndex
+        +number topIndex
+        %% Props
+        +string lobbyId
+        +string username
+        +boolean isHost
+        +function onSkinChange
+        %% Methods
+        +cycle()
+        +handleSkinChange()
+    }
+
+    class EffectTimer {
+        +Effect effect
+        +renderTimer()
+    }
+
+    class ChatModal {
+        +string lobbyId
+        +string username
+        +function onClose
+        +Message[] messages
+        +handleSendMessage()
+    }
+
+    class Toast {
+        +string message
+        +function onClose
+        +autoHide()
+    }
+
+    class GameServer {
+        %% Socket Event Handlers
+        +handleConnection()
+        +handleDisconnect()
+        +handleMove()
+        +handleBulletFired()
+        +handleItemUse()
+        +handleChestOpen()
+        +handleItemPickup()
+        +handleItemDrop()
+        %% Game Logic
+        +checkCollisions()
+        +generateItems()
+        +calculateDamage()
+        +applyEffects()
+        +connectedPlayers: Map
+        +bullets: Bullet[]
+        +chests: Chest[]
+        +possibleItems: Item[]
+        %% Additional methods
+        +handleBulletCollisions()
+        +updateBulletPositions()
+        +generateRandomItems()
+        +calculateItemPosition()
+    }
+
+    %% Server-Komponenten
+    class ExpressServer {
+        +app: Express
+        +corsOptions: CorsOptions
+        +setupMiddleware()
+        +setupRoutes()
+        +start()
+        %% REST Endpoints
+        +createLobby()
+        +joinLobby()
+        +leaveLobby()
+        +getLobbys()
+        +getLobby()
+        +getPlayers()
+        +getMessages()
+        +sendMessage()
+        +saveDrawing()
+        +getDrawings()
+        +updateSettings()
+        +kickPlayer()
+        +getHost()
+        +startGame()
+    }
+
+    class DatabaseManager {
+        +supabase: SupabaseClient
+        %% Database Operations
+        +createLobby()
+        +addPlayer()
+        +removePlayers()
+        +getLobbyPlayers()
+        +updateLobbySettings()
+        +getPlayerSkin()
+        +updatePlayerSkin()
+        +saveMessage()
+        +getMessages()
+        +saveDrawing()
+        +getDrawings()
+    }
+
+    class Message {
+        +string id
+        +string username
+        +string lobbyId
+        +string content
+        +Date createdAt
+    }
+
+    class Drawing {
+        +string id
+        +string lobbyId
+        +number x
+        +number y
+        +string color
+        +number thickness
+        +Date createdAt
+    }
+
+    class ConnectedPlayer {
+        +number x
+        +number y
+        +string username
+        +number health
+        +Skin skin
+        +number? shield
+        +number? speedBoost
+        +number? damageBoost
+    }
+
     %% Backend-Beziehungen
     LobbyManager "1" --> "*" Lobby
     Lobby "1" --> "*" Player
@@ -154,6 +350,9 @@ classDiagram
     Chest "1" --> "*" Item
     Player "1" --> "*" Item
     AuthManager "1" --> "*" Player
+    Item --> ItemPosition : uses
+    ItemWithPosition --> Item : contains
+    ItemWithPosition --> ItemPosition : has
 
     %% Frontend-Beziehungen
     App "1" --> "1" Router
@@ -164,6 +363,8 @@ classDiagram
     Router "1" --> "1" GameView
     GameView "1" --> "5" InventorySlot
     GameView "1" --> "*" GroundItem
+    GameView "1" --> "*" Effect
+    GameView "1" --> "*" VisualEffect
     GameView "1" --> "1" Socket
     LobbyView "1" --> "1" Socket
     LobbyListView "1" --> "1" Socket
@@ -174,4 +375,361 @@ classDiagram
     InventorySlot "1" --> "0..1" Item
     GroundItem "1" --> "1" Item
     LobbyView "1" --> "1" Lobby
-    LobbyListView "1" --> "*" Lobby 
+    LobbyListView "1" --> "*" Lobby
+    GameView --> Player : displays
+    GameView --> Bullet : manages
+    GameView --> Chest : interacts
+    Player --> Skin : has
+    Player --> InventorySlot : has
+    InventorySlot --> Item : contains
+    Chest --> Item : contains
+    GameView --> Effect : manages
+    GameView --> VisualEffect : manages
+    LobbyView "1" --> "1" LobbySettings
+    LobbyView "1" --> "1" SkinEditor
+    SkinEditor --> Skin : creates
+    GameView "1" --> "1" EffectTimer
+    LobbyView "1" --> "1" ChatModal
+    LobbyView "1" --> "1" Toast
+    GameServer "1" --> "*" Socket
+    GameServer "1" --> "1" Game
+    Socket "1" <--> "1" GameServer : WebSocket
+
+    %% Neue Beziehungen
+    ExpressServer "1" --> "1" DatabaseManager
+    ExpressServer "1" --> "1" GameServer
+    DatabaseManager "1" --> "*" Lobby
+    DatabaseManager "1" --> "*" Player
+    DatabaseManager "1" --> "*" Skin
+    DatabaseManager "1" --> "*" Message
+    DatabaseManager "1" --> "*" Drawing
+    GameServer "1" --> "*" ConnectedPlayer
+    ConnectedPlayer "1" --> "1" Skin
+    GameServer "1" --> "*" Socket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" LobbyManager : WebSocket
+    Socket "1" <--> "1" AuthManager : WebSocket
+    InventorySlot "1" --> "0..1" Item
+    GroundItem "1" --> "1" Item
+    LobbyView "1" --> "1" Lobby
+    LobbyListView "1" --> "*" Lobby
+    GameView --> Player : displays
+    GameView --> Bullet : manages
+    GameView --> Chest : interacts
+    Player --> Skin : has
+    Player --> InventorySlot : has
+    InventorySlot --> Item : contains
+    Chest --> Item : contains
+    GameView --> Effect : manages
+    GameView --> VisualEffect : manages
+    LobbyView "1" --> "1" LobbySettings
+    LobbyView "1" --> "1" SkinEditor
+    SkinEditor --> Skin : creates
+    GameView "1" --> "1" EffectTimer
+    LobbyView "1" --> "1" ChatModal
+    LobbyView "1" --> "1" Toast
+    GameServer "1" --> "*" Socket
+    GameServer "1" --> "1" Game
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    Socket "1" <--> "1" GameServer : WebSocket
+    DatabaseManager "1" --> "*" Skin 
