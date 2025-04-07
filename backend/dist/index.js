@@ -130,6 +130,7 @@ app.post("/lobby/join", async (req, res) => {
             // ebenfalls nicht blockieren
         }
     }
+    await updateLobbyActivity(lobbyId);
     res.status(200).json({ message: "Beigetreten" });
 });
 // ✅ Spieler aus Lobby entfernen
@@ -214,6 +215,7 @@ app.post("/messages", async (req, res) => {
             .status(500)
             .json({ error: "Fehler beim Speichern der Nachricht" });
     }
+    await updateLobbyActivity(lobbyId);
     res.json({ success: true });
 });
 // ✅ Zeichnungen empfangen
@@ -230,6 +232,7 @@ app.post("/drawings", async (req, res) => {
             .status(500)
             .json({ error: "Fehler beim Speichern der Zeichnung" });
     }
+    await updateLobbyActivity(lobbyId);
     res.json({ success: true });
 });
 // ✅ Zeichnungen abrufen
@@ -718,3 +721,36 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`✅ Server + WebSocket läuft auf http://localhost:${PORT}`);
 });
+// Funktion zum Überprüfen und Löschen inaktiver Lobbys
+async function cleanupInactiveLobbies() {
+    const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
+    const { data: inactiveLobbies, error } = await supabase
+        .from("lobbys")
+        .select("id")
+        .lt("last_activity", oneMinuteAgo);
+    if (error) {
+        console.error("Fehler beim Abrufen inaktiver Lobbys:", error);
+        return;
+    }
+    for (const lobby of inactiveLobbies || []) {
+        const { error: deleteError } = await supabase
+            .from("lobbys")
+            .delete()
+            .eq("id", lobby.id);
+        if (deleteError) {
+            console.error(`Fehler beim Löschen der Lobby ${lobby.id}:`, deleteError);
+        }
+    }
+}
+// Aktualisiere die Lobby-Aktivität
+async function updateLobbyActivity(lobbyId) {
+    const { error } = await supabase
+        .from("lobbys")
+        .update({ last_activity: new Date().toISOString() })
+        .eq("id", lobbyId);
+    if (error) {
+        console.error("Fehler beim Aktualisieren der Lobby-Aktivität:", error);
+    }
+}
+// Führe die Bereinigung alle 30 Sekunden durch
+setInterval(cleanupInactiveLobbies, 30000);
