@@ -494,6 +494,14 @@ io.on("connection", (socket) => {
             console.log(`🧰 ${player.username} hat Truhe ${chest.id} geöffnet und ${chest.items.length} Items gefunden`);
         }
     });
+    socket.on("itemPickedUp", (itemId) => {
+        // Informiere alle Spieler, dass das Item aufgesammelt wurde
+        io.emit("itemRemoved", itemId);
+    });
+    socket.on("itemDropped", (data) => {
+        // Informiere alle Spieler, dass ein neues Item gedroppt wurde
+        io.emit("itemDropped", data);
+    });
 });
 // Kollisionen prüfen & Leben abziehen
 setInterval(() => {

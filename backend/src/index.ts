@@ -633,6 +633,16 @@ io.on("connection", (socket) => {
       );
     }
   });
+
+  socket.on("itemPickedUp", (itemId: string) => {
+    // Informiere alle Spieler, dass das Item aufgesammelt wurde
+    io.emit("itemRemoved", itemId);
+  });
+
+  socket.on("itemDropped", (data: { item: Item; x: number; y: number }) => {
+    // Informiere alle Spieler, dass ein neues Item gedroppt wurde
+    io.emit("itemDropped", data);
+  });
 });
 
 // Kollisionen prüfen & Leben abziehen
