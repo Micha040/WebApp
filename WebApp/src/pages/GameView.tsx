@@ -45,6 +45,12 @@ type InventorySlot = {
   quantity: number;
 };
 
+type GroundItem = {
+  item: Item;
+  x: number;
+  y: number;
+};
+
 const socket = io(import.meta.env.VITE_API_URL, {
   withCredentials: true,
   transports: ['websocket'],
@@ -71,6 +77,8 @@ const GameView: React.FC = () => {
   const [selectedSlot, setSelectedSlot] = useState<number>(0);
   const [nearItems, setNearItems] = useState<Item[]>([]);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number>(0);
+  const [groundItems, setGroundItems] = useState<GroundItem[]>([]);
+  const [selectedGroundItem, setSelectedGroundItem] = useState<GroundItem | null>(null);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrame = useRef<number>(0);
@@ -210,31 +218,20 @@ const GameView: React.FC = () => {
     };
 
     const handleItemPickup = () => {
-      if (nearItems.length > 0) {
-        const selectedItem = nearItems[selectedItemIndex];
+      if (selectedGroundItem) {
         const newInventory = [...inventory];
         if (newInventory[selectedSlot].item === null) {
           // Slot ist leer, Item hinzufügen
-          newInventory[selectedSlot] = { item: selectedItem, quantity: 1 };
+          newInventory[selectedSlot] = { item: selectedGroundItem.item, quantity: 1 };
         } else {
           // Slot ist belegt, Item ersetzen
-          newInventory[selectedSlot] = { item: selectedItem, quantity: 1 };
+          newInventory[selectedSlot] = { item: selectedGroundItem.item, quantity: 1 };
         }
         setInventory(newInventory);
         
-        // Entferne das aufgesammelte Item aus der Liste
-        const remainingItems = [...nearItems];
-        remainingItems.splice(selectedItemIndex, 1);
-        
-        if (remainingItems.length === 0) {
-          setNearItems([]);
-        } else {
-          setNearItems(remainingItems);
-          // Setze den ausgewählten Index zurück, wenn wir am Ende der Liste sind
-          if (selectedItemIndex >= remainingItems.length) {
-            setSelectedItemIndex(remainingItems.length - 1);
-          }
-        }
+        // Entferne das Item vom Boden
+        setGroundItems(prev => prev.filter(item => item !== selectedGroundItem));
+        setSelectedGroundItem(null);
       }
     };
 
@@ -292,7 +289,7 @@ const GameView: React.FC = () => {
       cancelAnimationFrame(animationFrame.current);
       clearInterval(interval);
     };
-  }, [players, username, chests, nearChestId, nearItems, selectedSlot, inventory, selectedItemIndex]);
+  }, [players, username, chests, nearChestId, nearItems, selectedSlot, inventory, selectedItemIndex, selectedGroundItem]);
 
   useEffect(() => {
     socket.on("bulletSpawned", (bullet: Bullet) => {
@@ -327,15 +324,31 @@ const GameView: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    socket.on("itemsSpawned", (items: Item[]) => {
-      setNearItems(items);
-      setSelectedItemIndex(0);
+    socket.on("itemsSpawned", (items: Item[], chestPosition: { x: number, y: number }) => {
+      // Erstelle GroundItems mit zufälligen Offsets um die Truhe
+      const newGroundItems = items.map(item => ({
+        item,
+        x: chestPosition.x + (Math.random() - 0.5) * 40, // ±20 Pixel X-Offset
+        y: chestPosition.y + (Math.random() - 0.5) * 40  // ±20 Pixel Y-Offset
+      }));
+      setGroundItems(prev => [...prev, ...newGroundItems]);
     });
 
     return () => {
       socket.off("itemsSpawned");
     };
   }, []);
+
+  // Prüfe Nähe zu Items
+  useEffect(() => {
+    const currentPlayer = Object.values(players).find(p => p.username === username);
+    if (!currentPlayer) return;
+
+    const nearItem = groundItems.find(
+      (groundItem) => Math.hypot(groundItem.x - currentPlayer.x, groundItem.y - currentPlayer.y) < 50
+    );
+    setSelectedGroundItem(nearItem || null);
+  }, [players, username, groundItems]);
 
   return (
     <div
@@ -518,8 +531,34 @@ const GameView: React.FC = () => {
         ))}
       </div>
 
-      {/* Items aufheben Hinweis */}
-      {nearItems.length > 0 && (
+      {/* Items auf dem Boden */}
+      {groundItems.map((groundItem) => (
+        <div
+          key={groundItem.item.id}
+          style={{
+            position: 'absolute',
+            left: groundItem.x,
+            top: groundItem.y,
+            width: '30px',
+            height: '30px',
+            cursor: 'pointer',
+            transition: 'transform 0.2s',
+            transform: selectedGroundItem === groundItem 
+              ? 'translate(-50%, -50%) scale(1.2)' 
+              : 'translate(-50%, -50%)',
+          }}
+          onClick={() => setSelectedGroundItem(groundItem)}
+        >
+          <img
+            src={groundItem.item.icon_url}
+            alt={groundItem.item.name}
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
+      ))}
+
+      {/* Item aufheben Hinweis */}
+      {selectedGroundItem && (
         <div style={{
           position: 'fixed',
           bottom: '80px',
@@ -530,41 +569,8 @@ const GameView: React.FC = () => {
           padding: '10px 16px',
           borderRadius: '8px',
           fontSize: '1rem',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '10px',
         }}>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {nearItems.map((item, index) => (
-              <div
-                key={item.id}
-                style={{
-                  padding: '5px 10px',
-                  backgroundColor: selectedItemIndex === index ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                }}
-                onClick={() => setSelectedItemIndex(index)}
-              >
-                <img
-                  src={item.icon_url}
-                  alt={item.name}
-                  style={{ width: '30px', height: '30px', marginBottom: '5px' }}
-                />
-                <span>{item.name}</span>
-              </div>
-            ))}
-          </div>
-          <div>
-            Halte <strong>E</strong> zum Aufheben von {nearItems[selectedItemIndex].name}
-          </div>
-          <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
-            Benutze <strong>←</strong> und <strong>→</strong> zum Auswählen
-          </div>
+          Halte <strong>E</strong> zum Aufheben von {selectedGroundItem.item.name}
         </div>
       )}
 
