@@ -83,17 +83,17 @@ export default function SkinEditor({
           }}
         >
           <img
-            src={`/skins/Balls/${ballOptions[hatIndex]}.png`}
+            src={`/skins/Balls/${ballOptions[hatIndex]}`}
             alt="hat"
             style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
           />
           <img
-            src={`/skins/Eyes/${eyesOptions[eyesIndex]}.png`}
+            src={`/skins/Eyes/${eyesOptions[eyesIndex]}`}
             alt="eyes"
             style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
           />
           <img
-            src={`/skins/Mouths/${mouthOptions[mouthIndex]}.png`}
+            src={`/skins/Mouths/${mouthOptions[mouthIndex]}`}
             alt="mouth"
             style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
           />
