@@ -554,6 +554,27 @@ io.on("connection", (socket) => {
     io.emit("bulletSpawned", bullet);
   });
 
+  socket.on("useItem", (itemData) => {
+    const player = connectedPlayers[socket.id];
+    if (!player) return;
+
+    switch (itemData.type) {
+      case "heal":
+        player.health = Math.min(100, player.health + itemData.value);
+        console.log(
+          `💚 ${player.username} hat sich geheilt! +${itemData.value} HP (neu: ${player.health})`
+        );
+        io.emit("playersUpdate", connectedPlayers);
+        break;
+      case "shield":
+        // Hier können wir einen temporären Schild-Status hinzufügen
+        console.log(
+          `🛡️ ${player.username} hat einen Schild aktiviert! (${itemData.value} Schaden blockiert)`
+        );
+        break;
+    }
+  });
+
   socket.on("disconnect", () => {
     delete connectedPlayers[socket.id];
     io.emit("playersUpdate", connectedPlayers);
@@ -577,6 +598,9 @@ io.on("connection", (socket) => {
     if (dist < 50) {
       chest.opened = true;
       io.emit("chestsUpdate", chests);
+      if (chest.item) {
+        io.to(socket.id).emit("itemSpawned", chest.item);
+      }
       console.log(`🧰 ${player.username} hat Truhe ${chest.id} geöffnet`);
     }
   });
@@ -616,16 +640,52 @@ setInterval(() => {
   });
 }, 50);
 
+type Item = {
+  id: string;
+  name: string;
+  type: string;
+  effect_value: number;
+  description: string;
+  icon_url: string;
+};
+
 type Chest = {
   id: string;
   x: number;
   y: number;
   opened: boolean;
+  item?: Item;
 };
 
 const chests: Chest[] = [
-  { id: "chest-1", x: 300, y: 300, opened: false },
-  { id: "chest-2", x: 600, y: 200, opened: false },
+  {
+    id: "chest-1",
+    x: 300,
+    y: 300,
+    opened: false,
+    item: {
+      id: "heal-potion-1",
+      name: "Heiltrank",
+      type: "heal",
+      effect_value: 20,
+      description: "Heilt 20 HP",
+      icon_url: "/items/heal_potion.png",
+    },
+  },
+  {
+    id: "chest-2",
+    x: 600,
+    y: 200,
+    opened: false,
+    item: {
+      id: "shield-1",
+      name: "Schutzschild",
+      type: "shield",
+      effect_value: 50,
+      description: "Blockiert 50 Schaden",
+      icon_url: "/items/shield.png",
+    },
+  },
 ];
 
 const PORT = process.env.PORT || 3000;
