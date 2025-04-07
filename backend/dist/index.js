@@ -346,6 +346,7 @@ app.post("/lobby/start", async (req, res) => {
 //
 //
 //
+//
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 app.use(express_1.default.json());
@@ -448,59 +449,37 @@ io.on("connection", (socket) => {
         bullets.push(bullet);
         io.emit("bulletSpawned", bullet);
     });
-    socket.on("useItem", (itemData) => {
+    socket.on("useItem", (data) => {
         const player = connectedPlayers[socket.id];
         if (!player)
             return;
-        switch (itemData.type) {
+        const now = Date.now();
+        const duration = data.duration || 0;
+        switch (data.type) {
             case "heal":
-                player.health = Math.min(100, player.health + itemData.value);
-                console.log(`💚 ${player.username} hat sich geheilt! +${itemData.value} HP (neu: ${player.health})`);
-                io.emit("playersUpdate", connectedPlayers);
+                player.health = Math.min(100, player.health + data.value);
                 break;
             case "shield":
-                // Aktiviere temporären Schild für 10 Sekunden
-                player.shield = itemData.value;
-                console.log(`🛡️ ${player.username} hat einen Schild aktiviert! (${itemData.value} Schaden blockiert)`);
-                io.emit("playersUpdate", connectedPlayers);
-                // Deaktiviere Schild nach 10 Sekunden
-                setTimeout(() => {
-                    if (connectedPlayers[socket.id]) {
-                        delete connectedPlayers[socket.id].shield;
-                        io.emit("playersUpdate", connectedPlayers);
-                        console.log(`🛡️ ${player.username}'s Schild ist abgelaufen!`);
-                    }
-                }, 10000);
+                // Entferne alten Shield-Effekt
+                player.shield = undefined;
+                // Füge neuen Shield-Effekt hinzu
+                player.shield = data.value;
                 break;
             case "speed":
-                // Aktiviere Geschwindigkeitsboost für 10 Sekunden
-                player.speedBoost = itemData.value;
-                console.log(`⚡ ${player.username} hat einen Geschwindigkeitsboost aktiviert! (+${itemData.value}% Geschwindigkeit)`);
-                io.emit("playersUpdate", connectedPlayers);
-                // Deaktiviere Boost nach 10 Sekunden
-                setTimeout(() => {
-                    if (connectedPlayers[socket.id]) {
-                        delete connectedPlayers[socket.id].speedBoost;
-                        io.emit("playersUpdate", connectedPlayers);
-                        console.log(`⚡ ${player.username}'s Geschwindigkeitsboost ist abgelaufen!`);
-                    }
-                }, 10000);
+                // Entferne alten Speed-Effekt
+                player.speedBoost = undefined;
+                // Füge neuen Speed-Effekt hinzu
+                player.speedBoost = data.value;
                 break;
             case "damage":
-                // Aktiviere Schadensboost für 10 Sekunden
-                player.damageBoost = itemData.value;
-                console.log(`💥 ${player.username} hat einen Schadensboost aktiviert! (+${itemData.value}% Schaden)`);
-                io.emit("playersUpdate", connectedPlayers);
-                // Deaktiviere Boost nach 10 Sekunden
-                setTimeout(() => {
-                    if (connectedPlayers[socket.id]) {
-                        delete connectedPlayers[socket.id].damageBoost;
-                        io.emit("playersUpdate", connectedPlayers);
-                        console.log(`💥 ${player.username}'s Schadensboost ist abgelaufen!`);
-                    }
-                }, 10000);
+                // Entferne alten Damage-Effekt
+                player.damageBoost = undefined;
+                // Füge neuen Damage-Effekt hinzu
+                player.damageBoost = data.value;
                 break;
         }
+        // Aktualisiere alle Clients
+        io.emit("playersUpdate", connectedPlayers);
     });
     socket.on("disconnect", () => {
         delete connectedPlayers[socket.id];

@@ -439,6 +439,7 @@ app.post("/lobby/start", async (req, res) => {
 //
 //
 //
+//
 
 import http from "http";
 import { Server } from "socket.io";
@@ -584,75 +585,43 @@ io.on("connection", (socket) => {
     io.emit("bulletSpawned", bullet);
   });
 
-  socket.on("useItem", (itemData) => {
-    const player = connectedPlayers[socket.id];
-    if (!player) return;
+  socket.on(
+    "useItem",
+    (data: { type: string; value: number; duration?: number }) => {
+      const player = connectedPlayers[socket.id];
+      if (!player) return;
 
-    switch (itemData.type) {
-      case "heal":
-        player.health = Math.min(100, player.health + itemData.value);
-        console.log(
-          `💚 ${player.username} hat sich geheilt! +${itemData.value} HP (neu: ${player.health})`
-        );
-        io.emit("playersUpdate", connectedPlayers);
-        break;
-      case "shield":
-        // Aktiviere temporären Schild für 10 Sekunden
-        player.shield = itemData.value;
-        console.log(
-          `🛡️ ${player.username} hat einen Schild aktiviert! (${itemData.value} Schaden blockiert)`
-        );
-        io.emit("playersUpdate", connectedPlayers);
+      const now = Date.now();
+      const duration = data.duration || 0;
 
-        // Deaktiviere Schild nach 10 Sekunden
-        setTimeout(() => {
-          if (connectedPlayers[socket.id]) {
-            delete connectedPlayers[socket.id].shield;
-            io.emit("playersUpdate", connectedPlayers);
-            console.log(`🛡️ ${player.username}'s Schild ist abgelaufen!`);
-          }
-        }, 10000);
-        break;
-      case "speed":
-        // Aktiviere Geschwindigkeitsboost für 10 Sekunden
-        player.speedBoost = itemData.value;
-        console.log(
-          `⚡ ${player.username} hat einen Geschwindigkeitsboost aktiviert! (+${itemData.value}% Geschwindigkeit)`
-        );
-        io.emit("playersUpdate", connectedPlayers);
+      switch (data.type) {
+        case "heal":
+          player.health = Math.min(100, player.health + data.value);
+          break;
+        case "shield":
+          // Entferne alten Shield-Effekt
+          player.shield = undefined;
+          // Füge neuen Shield-Effekt hinzu
+          player.shield = data.value;
+          break;
+        case "speed":
+          // Entferne alten Speed-Effekt
+          player.speedBoost = undefined;
+          // Füge neuen Speed-Effekt hinzu
+          player.speedBoost = data.value;
+          break;
+        case "damage":
+          // Entferne alten Damage-Effekt
+          player.damageBoost = undefined;
+          // Füge neuen Damage-Effekt hinzu
+          player.damageBoost = data.value;
+          break;
+      }
 
-        // Deaktiviere Boost nach 10 Sekunden
-        setTimeout(() => {
-          if (connectedPlayers[socket.id]) {
-            delete connectedPlayers[socket.id].speedBoost;
-            io.emit("playersUpdate", connectedPlayers);
-            console.log(
-              `⚡ ${player.username}'s Geschwindigkeitsboost ist abgelaufen!`
-            );
-          }
-        }, 10000);
-        break;
-      case "damage":
-        // Aktiviere Schadensboost für 10 Sekunden
-        player.damageBoost = itemData.value;
-        console.log(
-          `💥 ${player.username} hat einen Schadensboost aktiviert! (+${itemData.value}% Schaden)`
-        );
-        io.emit("playersUpdate", connectedPlayers);
-
-        // Deaktiviere Boost nach 10 Sekunden
-        setTimeout(() => {
-          if (connectedPlayers[socket.id]) {
-            delete connectedPlayers[socket.id].damageBoost;
-            io.emit("playersUpdate", connectedPlayers);
-            console.log(
-              `💥 ${player.username}'s Schadensboost ist abgelaufen!`
-            );
-          }
-        }, 10000);
-        break;
+      // Aktualisiere alle Clients
+      io.emit("playersUpdate", connectedPlayers);
     }
-  });
+  );
 
   socket.on("disconnect", () => {
     delete connectedPlayers[socket.id];
