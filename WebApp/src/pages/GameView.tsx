@@ -322,7 +322,7 @@ const GameView: React.FC = () => {
       setInventory(newInventory);
     };
 
-    // Effekte aufräumen (außerhalb der Event-Handler)
+    // Effekte aufräumen (auf oberster Ebene)
     useEffect(() => {
       const interval = setInterval(() => {
         const now = Date.now();
@@ -447,7 +447,7 @@ const GameView: React.FC = () => {
     setSelectedGroundItem(closestItem);
   }, [players, username, groundItems]);
 
-  // Füge diesen useEffect nach den anderen Socket-Listenern hinzu
+  // Visuelle Effekte Socket Listener
   useEffect(() => {
     socket.on('visualEffect', (effect: VisualEffect) => {
       setVisualEffects(prev => [...prev, effect]);
