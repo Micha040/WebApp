@@ -644,23 +644,23 @@ const GameView: React.FC = () => {
             }}
           >
             <img
-              src={`/skins/Balls/${player.skin.ball}`}
+              src={`/skins/Balls/${player.skin.ball}.png`}
               alt="ball"
               style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
             />
             <img
-              src={`/skins/Eyes/${player.skin.eyes}`}
+              src={`/skins/Eyes/${player.skin.eyes}.png`}
               alt="eyes"
               style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
             />
             <img
-              src={`/skins/Mouths/${player.skin.mouth}`}
+              src={`/skins/Mouths/${player.skin.mouth}.png`}
               alt="mouth"
               style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
             />
             {player.skin.top !== 'none' && (
               <img
-                src={`/skins/Tops/${player.skin.top}`}
+                src={`/skins/Tops/${player.skin.top}.png`}
                 alt="top"
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
               />
