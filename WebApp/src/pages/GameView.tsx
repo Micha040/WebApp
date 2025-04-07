@@ -31,6 +31,20 @@ type Chest = {
   opened: boolean;
 };
 
+type Item = {
+  id: string;
+  name: string;
+  type: string;
+  effect_value: number;
+  description: string;
+  icon_url: string;
+};
+
+type InventorySlot = {
+  item: Item | null;
+  quantity: number;
+};
+
 const socket = io(import.meta.env.VITE_API_URL, {
   withCredentials: true,
   transports: ['websocket'],
@@ -47,6 +61,15 @@ const GameView: React.FC = () => {
   ]);
   
   const [nearChestId, setNearChestId] = useState<string | null>(null);
+  const [inventory, setInventory] = useState<InventorySlot[]>([
+    { item: null, quantity: 0 },
+    { item: null, quantity: 0 },
+    { item: null, quantity: 0 },
+    { item: null, quantity: 0 },
+    { item: null, quantity: 0 },
+  ]);
+  const [selectedSlot, setSelectedSlot] = useState<number>(0);
+  const [nearItem, setNearItem] = useState<Item | null>(null);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrame = useRef<number>(0);
@@ -78,6 +101,15 @@ const GameView: React.FC = () => {
       if (e.key === 'Tab') {
         e.preventDefault();
         setShowPlayerList(true);
+      }
+      // Inventar-Slot-Auswahl mit Zahlen
+      const slotNumber = parseInt(e.key);
+      if (slotNumber >= 1 && slotNumber <= 5) {
+        setSelectedSlot(slotNumber - 1);
+      }
+      // Item verwenden mit F
+      if (e.key.toLowerCase() === 'f') {
+        handleItemUse();
       }
     };
 
@@ -154,32 +186,76 @@ const GameView: React.FC = () => {
     const handleChestOpen = () => {
       if (nearChestId) {
         socket.emit("openChest", nearChestId);
-        setChests((prev) =>
-          prev.map((chest) =>
-            chest.id === nearChestId ? { ...chest, opened: true } : chest
-          )
-        );
+        // Zufälliges Item aus der Truhe generieren
+        const randomItem: Item = {
+          id: crypto.randomUUID(),
+          name: "Heiltrank",
+          type: "heal",
+          effect_value: 20,
+          description: "Heilt 20 HP",
+          icon_url: "/items/heal_potion.png"
+        };
+        setNearItem(randomItem);
         setNearChestId(null);
       }
     };
 
-    // const handleChestOpen = () => {
-    //   if (nearChestId) {
-    //     socket.emit("openChest", nearChestId); // 🔥 Synchronisiert mit Server
-    //     setNearChestId(null);
-    //   }
-    // };
-    
+    const handleItemPickup = () => {
+      if (nearItem) {
+        const newInventory = [...inventory];
+        if (newInventory[selectedSlot].item === null) {
+          // Slot ist leer, Item hinzufügen
+          newInventory[selectedSlot] = { item: nearItem, quantity: 1 };
+        } else {
+          // Slot ist belegt, Item ersetzen
+          newInventory[selectedSlot] = { item: nearItem, quantity: 1 };
+        }
+        setInventory(newInventory);
+        setNearItem(null);
+      }
+    };
+
+    const handleItemUse = () => {
+      const selectedItem = inventory[selectedSlot].item;
+      if (!selectedItem) return;
+
+      switch (selectedItem.type) {
+        case 'heal':
+          socket.emit('useItem', {
+            type: 'heal',
+            value: selectedItem.effect_value
+          });
+          // Item aus Inventar entfernen
+          const newInventory = [...inventory];
+          newInventory[selectedSlot] = { item: null, quantity: 0 };
+          setInventory(newInventory);
+          break;
+        case 'shield':
+          socket.emit('useItem', {
+            type: 'shield',
+            value: selectedItem.effect_value
+          });
+          // Item aus Inventar entfernen
+          const newInventory2 = [...inventory];
+          newInventory2[selectedSlot] = { item: null, quantity: 0 };
+          setInventory(newInventory2);
+          break;
+      }
+    };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('click', handleClick);
 
-    // "E" gedrückt halten zum Öffnen
+    // "E" gedrückt halten zum Öffnen/Aufsammeln
     const interval = setInterval(() => {
       if (keysPressed.current['e']) {
-        handleChestOpen();
+        if (nearChestId) {
+          handleChestOpen();
+        } else if (nearItem) {
+          handleItemPickup();
+        }
       }
     }, 100);
 
@@ -193,7 +269,7 @@ const GameView: React.FC = () => {
       cancelAnimationFrame(animationFrame.current);
       clearInterval(interval);
     };
-  }, [players, username, chests, nearChestId]);
+  }, [players, username, chests, nearChestId, nearItem, selectedSlot, inventory]);
 
   useEffect(() => {
     socket.on("bulletSpawned", (bullet: Bullet) => {
@@ -224,6 +300,16 @@ const GameView: React.FC = () => {
   
     return () => {
       socket.off('chestsUpdate');
+    };
+  }, []);
+
+  useEffect(() => {
+    socket.on("itemSpawned", (item: Item) => {
+      setNearItem(item);
+    });
+
+    return () => {
+      socket.off("itemSpawned");
     };
   }, []);
 
@@ -356,23 +442,72 @@ const GameView: React.FC = () => {
           />
         ))}
 
+      {/* Inventar */}
+      <div style={{
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        display: 'flex',
+        gap: '5px',
+        padding: '10px',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        borderRadius: '8px',
+      }}>
+        {inventory.map((slot, index) => (
+          <div
+            key={index}
+            style={{
+              width: '50px',
+              height: '50px',
+              border: `2px solid ${selectedSlot === index ? '#fff' : '#666'}`,
+              borderRadius: '4px',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+            onClick={() => setSelectedSlot(index)}
+          >
+            {slot.item && (
+              <img
+                src={slot.item.icon_url}
+                alt={slot.item.name}
+                style={{ width: '80%', height: '80%' }}
+              />
+            )}
+            {slot.quantity > 1 && (
+              <div style={{
+                position: 'absolute',
+                bottom: '2px',
+                right: '2px',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                color: 'white',
+                padding: '2px 4px',
+                borderRadius: '4px',
+                fontSize: '12px',
+              }}>
+                {slot.quantity}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
-      {/* Hinweis zum Öffnen */}
-      {nearChestId && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 80,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            color: 'white',
-            padding: '10px 16px',
-            borderRadius: '8px',
-            fontSize: '1rem',
-          }}
-        >
-          Halte <strong>E</strong> zum Öffnen der Truhe
+      {/* Item aufheben Hinweis */}
+      {nearItem && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          color: 'white',
+          padding: '10px 16px',
+          borderRadius: '8px',
+          fontSize: '1rem',
+        }}>
+          Halte <strong>E</strong> zum Aufheben von {nearItem.name}
         </div>
       )}
 
