@@ -1,18 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
+import PlayerSkin from '../components/PlayerSkin';
 // import { useParams } from 'react-router-dom';
+
+type PlayerSkin = {
+  ball: "white" | "red" | "blue" | "green" | "yellow" | "pink";
+  eyes: "normal" | "angry" | "happy";
+  mouth: "normal" | "happy" | "sad";
+  top: "none" | "hat" | "crown";
+};
 
 type Player = {
   x: number;
   y: number;
   username: string;
   health: number;
-  skin: {
-    ball: string;
-    eyes: string;
-    mouth: string;
-    top: string;
-  };
+  skin: PlayerSkin;
 };
 
 type Bullet = {
@@ -448,38 +451,7 @@ const GameView: React.FC = () => {
           </div>
 
           {/* Skin-Komponenten */}
-          <div
-            style={{
-              position: 'relative',
-              width: '40px',
-              height: '40px',
-              margin: '0 auto',
-              imageRendering: 'pixelated',
-            }}
-          >
-            <img
-              src={`/skins/Balls/${player.skin.ball}.png`}
-              alt="ball"
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
-            />
-            <img
-              src={`/skins/Eyes/${player.skin.eyes}.png`}
-              alt="eyes"
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
-            />
-            <img
-              src={`/skins/Mouths/${player.skin.mouth}.png`}
-              alt="mouth"
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
-            />
-            {player.skin.top !== 'none' && (
-              <img
-                src={`/skins/Tops/${player.skin.top}.png`}
-                alt="top"
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
-              />
-            )}
-          </div>
+          <PlayerSkin skin={player.skin} size={40} />
 
           {/* Lebensbalken */}
           <div
