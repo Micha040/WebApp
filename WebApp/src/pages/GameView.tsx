@@ -7,6 +7,12 @@ type Player = {
   y: number;
   username: string;
   health: number;
+  skin: {
+    ball: string;
+    eyes: string;
+    mouth: string;
+    top: string;
+  };
 };
 
 type Bullet = {
@@ -170,7 +176,7 @@ const GameView: React.FC = () => {
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('click', handleClick);
 
-    // „E“ gedrückt halten zum Öffnen
+    // "E" gedrückt halten zum Öffnen
     const interval = setInterval(() => {
       if (keysPressed.current['e']) {
         handleChestOpen();
@@ -253,20 +259,39 @@ const GameView: React.FC = () => {
             {player.username}
           </div>
 
-          {/* Kreis */}
+          {/* Skin-Komponenten */}
           <div
             style={{
+              position: 'relative',
               width: '40px',
               height: '40px',
-              background: player.username === username ? 'blue' : 'red',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: '0.8rem',
+              margin: '0 auto',
+              imageRendering: 'pixelated',
             }}
-          />
+          >
+            <img
+              src={`/skins/Balls/${player.skin.ball}.png`}
+              alt="ball"
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+            />
+            <img
+              src={`/skins/Eyes/${player.skin.eyes}.png`}
+              alt="eyes"
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+            />
+            <img
+              src={`/skins/Mouths/${player.skin.mouth}.png`}
+              alt="mouth"
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+            />
+            {player.skin.top !== 'none' && (
+              <img
+                src={`/skins/Tops/${player.skin.top}.png`}
+                alt="top"
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+              />
+            )}
+          </div>
 
           {/* Lebensbalken */}
           <div
