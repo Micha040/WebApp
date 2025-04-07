@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import EffectTimer from '../components/EffectTimer';
 // import { useParams } from 'react-router-dom';
 
+// Typen außerhalb der Komponente definieren
 type Player = {
   x: number;
   y: number;
@@ -74,13 +75,14 @@ type VisualEffect = {
   endTime: number;
 };
 
+// Socket-Verbindung außerhalb der Komponente erstellen
 const socket = io(import.meta.env.VITE_API_URL, {
   withCredentials: true,
   transports: ['websocket'],
 });
 
 const GameView: React.FC = () => {
-  // const { id } = useParams();
+  // Alle States am Anfang der Komponente definieren
   const [players, setPlayers] = useState<Record<string, Player>>({});
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [username, setUsername] = useState<string>('');
@@ -88,7 +90,6 @@ const GameView: React.FC = () => {
     { id: 'chest-1', x: 300, y: 300, opened: false },
     { id: 'chest-2', x: 600, y: 200, opened: false },
   ]);
-  
   const [nearChestId, setNearChestId] = useState<string | null>(null);
   const [inventory, setInventory] = useState<InventorySlot[]>([
     { item: null, quantity: 0 },
@@ -103,13 +104,15 @@ const GameView: React.FC = () => {
   const [selectedGroundItem, setSelectedGroundItem] = useState<GroundItem | null>(null);
   const [activeEffects, setActiveEffects] = useState<Effect[]>([]);
   const [visualEffects, setVisualEffects] = useState<VisualEffect[]>([]);
-
-  const keysPressed = useRef<{ [key: string]: boolean }>({});
-  const animationFrame = useRef<number>(0);
-  const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const [showPlayerList, setShowPlayerList] = useState(false);
   const [ping, setPing] = useState<number | null>(null);
 
+  // Refs
+  const keysPressed = useRef<{ [key: string]: boolean }>({});
+  const animationFrame = useRef<number>(0);
+  const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Effekte für Socket-Verbindung
   useEffect(() => {
     const storedUsername = localStorage.getItem('username');
     if (storedUsername) {
@@ -118,14 +121,35 @@ const GameView: React.FC = () => {
     }
   }, []);
 
+  // Effekt für Spieler-Updates
   useEffect(() => {
     socket.on('playersUpdate', (data: Record<string, Player>) => {
-      console.log("🔁 Spieler-Update empfangen:", data);
       setPlayers(data);
     });
     return () => {
       socket.off('playersUpdate');
     };
+  }, []);
+
+  // Effekt für visuelle Effekte
+  useEffect(() => {
+    socket.on('visualEffect', (effect: VisualEffect) => {
+      setVisualEffects(prev => [...prev, effect]);
+    });
+    return () => {
+      socket.off('visualEffect');
+    };
+  }, []);
+
+  // Effekt für das Aufräumen der Effekte
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      setActiveEffects(prev => prev.filter(effect => effect.endTime > now));
+      setVisualEffects(prev => prev.filter(effect => effect.endTime > now));
+    }, 100);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -322,17 +346,6 @@ const GameView: React.FC = () => {
       setInventory(newInventory);
     };
 
-    // Effekte aufräumen (auf oberster Ebene)
-    useEffect(() => {
-      const interval = setInterval(() => {
-        const now = Date.now();
-        setActiveEffects(prev => prev.filter(effect => effect.endTime > now));
-        setVisualEffects(prev => prev.filter(effect => effect.endTime > now));
-      }, 100);
-
-      return () => clearInterval(interval);
-    }, []);
-
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
     window.addEventListener('mousemove', handleMouseMove);
@@ -446,17 +459,6 @@ const GameView: React.FC = () => {
 
     setSelectedGroundItem(closestItem);
   }, [players, username, groundItems]);
-
-  // Visuelle Effekte Socket Listener
-  useEffect(() => {
-    socket.on('visualEffect', (effect: VisualEffect) => {
-      setVisualEffects(prev => [...prev, effect]);
-    });
-
-    return () => {
-      socket.off('visualEffect');
-    };
-  }, []);
 
   const renderVisualEffect = (playerId: string, effect: VisualEffect) => {
     const player = players[playerId];
