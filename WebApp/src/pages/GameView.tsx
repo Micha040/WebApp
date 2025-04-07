@@ -69,7 +69,8 @@ const GameView: React.FC = () => {
     { item: null, quantity: 0 },
   ]);
   const [selectedSlot, setSelectedSlot] = useState<number>(0);
-  const [nearItem, setNearItem] = useState<Item | null>(null);
+  const [nearItems, setNearItems] = useState<Item[]>([]);
+  const [selectedItemIndex, setSelectedItemIndex] = useState<number>(0);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrame = useRef<number>(0);
@@ -110,6 +111,14 @@ const GameView: React.FC = () => {
       // Item verwenden mit F
       if (e.key.toLowerCase() === 'f') {
         handleItemUse();
+      }
+      // Item-Auswahl mit Pfeiltasten
+      if (nearItems.length > 0) {
+        if (e.key === 'ArrowLeft') {
+          setSelectedItemIndex((prev) => (prev > 0 ? prev - 1 : prev));
+        } else if (e.key === 'ArrowRight') {
+          setSelectedItemIndex((prev) => (prev < nearItems.length - 1 ? prev + 1 : prev));
+        }
       }
     };
 
@@ -195,23 +204,37 @@ const GameView: React.FC = () => {
           description: "Heilt 20 HP",
           icon_url: "/items/heal_potion.png"
         };
-        setNearItem(randomItem);
+        setNearItems([randomItem]);
         setNearChestId(null);
       }
     };
 
     const handleItemPickup = () => {
-      if (nearItem) {
+      if (nearItems.length > 0) {
+        const selectedItem = nearItems[selectedItemIndex];
         const newInventory = [...inventory];
         if (newInventory[selectedSlot].item === null) {
           // Slot ist leer, Item hinzufügen
-          newInventory[selectedSlot] = { item: nearItem, quantity: 1 };
+          newInventory[selectedSlot] = { item: selectedItem, quantity: 1 };
         } else {
           // Slot ist belegt, Item ersetzen
-          newInventory[selectedSlot] = { item: nearItem, quantity: 1 };
+          newInventory[selectedSlot] = { item: selectedItem, quantity: 1 };
         }
         setInventory(newInventory);
-        setNearItem(null);
+        
+        // Entferne das aufgesammelte Item aus der Liste
+        const remainingItems = [...nearItems];
+        remainingItems.splice(selectedItemIndex, 1);
+        
+        if (remainingItems.length === 0) {
+          setNearItems([]);
+        } else {
+          setNearItems(remainingItems);
+          // Setze den ausgewählten Index zurück, wenn wir am Ende der Liste sind
+          if (selectedItemIndex >= remainingItems.length) {
+            setSelectedItemIndex(remainingItems.length - 1);
+          }
+        }
       }
     };
 
@@ -253,7 +276,7 @@ const GameView: React.FC = () => {
       if (keysPressed.current['e']) {
         if (nearChestId) {
           handleChestOpen();
-        } else if (nearItem) {
+        } else if (nearItems.length > 0) {
           handleItemPickup();
         }
       }
@@ -269,7 +292,7 @@ const GameView: React.FC = () => {
       cancelAnimationFrame(animationFrame.current);
       clearInterval(interval);
     };
-  }, [players, username, chests, nearChestId, nearItem, selectedSlot, inventory]);
+  }, [players, username, chests, nearChestId, nearItems, selectedSlot, inventory, selectedItemIndex]);
 
   useEffect(() => {
     socket.on("bulletSpawned", (bullet: Bullet) => {
@@ -304,12 +327,13 @@ const GameView: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    socket.on("itemSpawned", (item: Item) => {
-      setNearItem(item);
+    socket.on("itemsSpawned", (items: Item[]) => {
+      setNearItems(items);
+      setSelectedItemIndex(0);
     });
 
     return () => {
-      socket.off("itemSpawned");
+      socket.off("itemsSpawned");
     };
   }, []);
 
@@ -494,8 +518,8 @@ const GameView: React.FC = () => {
         ))}
       </div>
 
-      {/* Item aufheben Hinweis */}
-      {nearItem && (
+      {/* Items aufheben Hinweis */}
+      {nearItems.length > 0 && (
         <div style={{
           position: 'fixed',
           bottom: '80px',
@@ -506,8 +530,41 @@ const GameView: React.FC = () => {
           padding: '10px 16px',
           borderRadius: '8px',
           fontSize: '1rem',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '10px',
         }}>
-          Halte <strong>E</strong> zum Aufheben von {nearItem.name}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {nearItems.map((item, index) => (
+              <div
+                key={item.id}
+                style={{
+                  padding: '5px 10px',
+                  backgroundColor: selectedItemIndex === index ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                }}
+                onClick={() => setSelectedItemIndex(index)}
+              >
+                <img
+                  src={item.icon_url}
+                  alt={item.name}
+                  style={{ width: '30px', height: '30px', marginBottom: '5px' }}
+                />
+                <span>{item.name}</span>
+              </div>
+            ))}
+          </div>
+          <div>
+            Halte <strong>E</strong> zum Aufheben von {nearItems[selectedItemIndex].name}
+          </div>
+          <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+            Benutze <strong>←</strong> und <strong>→</strong> zum Auswählen
+          </div>
         </div>
       )}
 
