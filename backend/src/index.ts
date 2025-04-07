@@ -392,7 +392,12 @@ app.post("/lobby/start", async (req, res) => {
 
   const { error: updateError } = await supabase
     .from("skins")
-    .update({ ball, eyes, mouth, top })
+    .update({
+      ball: ball.startsWith("sprite_") ? ball : `sprite_${ball}`,
+      eyes,
+      mouth,
+      top,
+    })
     .eq("player_id", player.id);
 
   if (updateError) {
