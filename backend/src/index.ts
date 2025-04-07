@@ -601,12 +601,15 @@ io.on("connection", (socket) => {
       chest.items = generateRandomItems();
       io.emit("chestsUpdate", chests);
 
-      // Sende die Items an den Spieler zusammen mit der Truhenposition
+      // Sende die Items an ALLE Spieler zusammen mit der Truhenposition
       if (chest.items.length > 0) {
-        io.to(socket.id).emit("itemsSpawned", chest.items, {
-          x: chest.x,
-          y: chest.y,
+        // Berechne für jedes Item eine zufällige Position
+        const itemsWithPositions = chest.items.map((item) => {
+          const position = calculateItemPosition(chest.x, chest.y);
+          return { item, position };
         });
+
+        io.emit("itemsSpawned", itemsWithPositions);
       }
 
       console.log(
@@ -722,6 +725,24 @@ function generateRandomItems(): Item[] {
   }
 
   return items;
+}
+
+// Funktion zum Berechnen der Position eines Items mit zufälliger Kraft
+function calculateItemPosition(
+  chestX: number,
+  chestY: number
+): { x: number; y: number } {
+  // Zufälliger Winkel im Bogenmaß (0 bis 2π)
+  const angle = Math.random() * Math.PI * 2;
+
+  // Zufällige Kraft zwischen 30 und 60
+  const force = 30 + Math.random() * 30;
+
+  // Berechne die neue Position basierend auf Winkel und Kraft
+  const x = chestX + Math.cos(angle) * force;
+  const y = chestY + Math.sin(angle) * force;
+
+  return { x, y };
 }
 
 type Chest = {
