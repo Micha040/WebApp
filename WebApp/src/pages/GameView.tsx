@@ -177,6 +177,11 @@ const GameView: React.FC = () => {
             Math.hypot(chest.x - currentPlayer.x, chest.y - currentPlayer.y) < 50
         );
         setNearChestId(near?.id || null);
+        
+        // Debug-Log für Truhen-Erkennung
+        if (near) {
+          console.log("Truhe in der Nähe:", near.id);
+        }
       }
 
       animationFrame.current = requestAnimationFrame(move);
@@ -221,18 +226,30 @@ const GameView: React.FC = () => {
     const handleItemPickup = () => {
       if (selectedGroundItem) {
         const newInventory = [...inventory];
-        if (newInventory[selectedSlot].item === null) {
-          // Slot ist leer, Item hinzufügen
-          newInventory[selectedSlot] = { item: selectedGroundItem.item, quantity: 1 };
-        } else {
-          // Slot ist belegt, Item ersetzen
-          newInventory[selectedSlot] = { item: selectedGroundItem.item, quantity: 1 };
+        
+        // Wenn der Slot bereits belegt ist, das vorhandene Item droppen
+        if (newInventory[selectedSlot].item !== null) {
+          const droppedItem = newInventory[selectedSlot].item;
+          if (droppedItem) {
+            // Sende das gedroppte Item an den Server, damit es für alle Spieler sichtbar ist
+            socket.emit("itemDropped", {
+              item: droppedItem,
+              x: Object.values(players).find(p => p.username === username)?.x || 0,
+              y: Object.values(players).find(p => p.username === username)?.y || 0
+            });
+          }
         }
+        
+        // Neues Item in den Slot legen
+        newInventory[selectedSlot] = { item: selectedGroundItem.item, quantity: 1 };
         setInventory(newInventory);
         
-        // Entferne das Item vom Boden
+        // Entferne das Item vom Boden für diesen Spieler
         setGroundItems(prev => prev.filter(item => item !== selectedGroundItem));
         setSelectedGroundItem(null);
+        
+        // Informiere den Server, dass das Item aufgesammelt wurde
+        socket.emit("itemPickedUp", selectedGroundItem.item.id);
       }
     };
 
@@ -336,8 +353,25 @@ const GameView: React.FC = () => {
       setGroundItems(prev => [...prev, ...newGroundItems]);
     });
 
+    // Höre auf das Event, wenn ein Item von einem anderen Spieler aufgesammelt wurde
+    socket.on("itemRemoved", (itemId: string) => {
+      setGroundItems(prev => prev.filter(item => item.item.id !== itemId));
+    });
+
+    // Höre auf das Event, wenn ein Item von einem anderen Spieler gedroppt wurde
+    socket.on("itemDropped", (data: { item: Item, x: number, y: number }) => {
+      const newGroundItem: GroundItem = {
+        item: data.item,
+        x: data.x,
+        y: data.y
+      };
+      setGroundItems(prev => [...prev, newGroundItem]);
+    });
+
     return () => {
       socket.off("itemsSpawned");
+      socket.off("itemRemoved");
+      socket.off("itemDropped");
     };
   }, [socket]);
 
