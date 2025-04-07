@@ -55,9 +55,9 @@ app.post("/lobby", async (req, res) => {
             player_id: insertedPlayer.id,
             lobby_id: lobbyId,
             top: "none",
-            ball: "RedBall",
-            eyes: "Eyes_Standart",
-            mouth: "Mouth_Smile",
+            ball: "sprite_1",
+            eyes: "Eyes_Default",
+            mouth: "Mouth_Default",
         },
     ]);
     if (skinError) {
@@ -120,9 +120,9 @@ app.post("/lobby/join", async (req, res) => {
                 player_id: insertedPlayer.id,
                 lobby_id: lobbyId,
                 top: "none",
-                ball: "RedBall",
-                eyes: "Eyes_Standart",
-                mouth: "Mouth_Smile",
+                ball: "sprite_1",
+                eyes: "Eyes_Default",
+                mouth: "Mouth_Default",
             },
         ]);
         if (skinInsertError) {
