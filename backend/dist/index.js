@@ -455,30 +455,30 @@ io.on("connection", (socket) => {
             return;
         const now = Date.now();
         const duration = data.duration || 0;
+        // Sende den visuellen Effekt an alle Spieler
+        io.emit("visualEffect", {
+            type: data.type,
+            playerId: socket.id,
+            endTime: data.type === "heal" ? now + 1000 : now + duration,
+        });
         switch (data.type) {
             case "heal":
                 player.health = Math.min(100, player.health + data.value);
+                console.log(`💚 ${player.username} hat sich geheilt! +${data.value} HP (neu: ${player.health})`);
                 break;
             case "shield":
-                // Entferne alten Shield-Effekt
-                player.shield = undefined;
-                // Füge neuen Shield-Effekt hinzu
                 player.shield = data.value;
+                console.log(`🛡️ ${player.username} hat einen Schild aktiviert! (${data.value} Schaden blockiert)`);
                 break;
             case "speed":
-                // Entferne alten Speed-Effekt
-                player.speedBoost = undefined;
-                // Füge neuen Speed-Effekt hinzu
                 player.speedBoost = data.value;
+                console.log(`⚡ ${player.username} hat einen Geschwindigkeitsboost aktiviert! (+${data.value}% Geschwindigkeit)`);
                 break;
             case "damage":
-                // Entferne alten Damage-Effekt
-                player.damageBoost = undefined;
-                // Füge neuen Damage-Effekt hinzu
                 player.damageBoost = data.value;
+                console.log(`�� ${player.username} hat einen Schadensboost aktiviert! (+${data.value}% Schaden)`);
                 break;
         }
-        // Aktualisiere alle Clients
         io.emit("playersUpdate", connectedPlayers);
     });
     socket.on("disconnect", () => {
