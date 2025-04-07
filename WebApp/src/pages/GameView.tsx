@@ -68,6 +68,12 @@ type Effect = {
   slot: number;
 };
 
+type VisualEffect = {
+  type: 'heal' | 'shield' | 'speed' | 'damage';
+  playerId: string;
+  endTime: number;
+};
+
 const socket = io(import.meta.env.VITE_API_URL, {
   withCredentials: true,
   transports: ['websocket'],
@@ -96,6 +102,7 @@ const GameView: React.FC = () => {
   const [groundItems, setGroundItems] = useState<GroundItem[]>([]);
   const [selectedGroundItem, setSelectedGroundItem] = useState<GroundItem | null>(null);
   const [activeEffects, setActiveEffects] = useState<Effect[]>([]);
+  const [visualEffects, setVisualEffects] = useState<VisualEffect[]>([]);
 
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrame = useRef<number>(0);
@@ -266,7 +273,6 @@ const GameView: React.FC = () => {
       if (!selectedItem) return;
 
       const effectDuration = 10000; // 10 Sekunden
-      const now = Date.now();
 
       switch (selectedItem.type) {
         case 'heal':
@@ -283,7 +289,7 @@ const GameView: React.FC = () => {
           });
           setActiveEffects(prev => [
             ...prev.filter(e => e.type !== 'shield'),
-            { type: 'shield', endTime: now + effectDuration, slot: selectedSlot }
+            { type: 'shield', endTime: Date.now() + effectDuration, slot: selectedSlot }
           ]);
           break;
         case 'speed':
@@ -294,7 +300,7 @@ const GameView: React.FC = () => {
           });
           setActiveEffects(prev => [
             ...prev.filter(e => e.type !== 'speed'),
-            { type: 'speed', endTime: now + effectDuration, slot: selectedSlot }
+            { type: 'speed', endTime: Date.now() + effectDuration, slot: selectedSlot }
           ]);
           break;
         case 'damage':
@@ -305,7 +311,7 @@ const GameView: React.FC = () => {
           });
           setActiveEffects(prev => [
             ...prev.filter(e => e.type !== 'damage'),
-            { type: 'damage', endTime: now + effectDuration, slot: selectedSlot }
+            { type: 'damage', endTime: Date.now() + effectDuration, slot: selectedSlot }
           ]);
           break;
       }
@@ -316,12 +322,13 @@ const GameView: React.FC = () => {
       setInventory(newInventory);
     };
 
-    // Effekte aufräumen
+    // Effekte aufräumen (außerhalb der Event-Handler)
     useEffect(() => {
       const interval = setInterval(() => {
         const now = Date.now();
         setActiveEffects(prev => prev.filter(effect => effect.endTime > now));
-      }, 1000);
+        setVisualEffects(prev => prev.filter(effect => effect.endTime > now));
+      }, 100);
 
       return () => clearInterval(interval);
     }, []);
@@ -440,6 +447,133 @@ const GameView: React.FC = () => {
     setSelectedGroundItem(closestItem);
   }, [players, username, groundItems]);
 
+  // Füge diesen useEffect nach den anderen Socket-Listenern hinzu
+  useEffect(() => {
+    socket.on('visualEffect', (effect: VisualEffect) => {
+      setVisualEffects(prev => [...prev, effect]);
+    });
+
+    return () => {
+      socket.off('visualEffect');
+    };
+  }, []);
+
+  const renderVisualEffect = (playerId: string, effect: VisualEffect) => {
+    const player = players[playerId];
+    if (!player) return null;
+
+    switch (effect.type) {
+      case 'heal':
+        return (
+          <div
+            key={`${playerId}-heal-${effect.endTime}`}
+            style={{
+              position: 'absolute',
+              left: player.x,
+              top: player.y,
+              width: '60px',
+              height: '60px',
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none'
+            }}
+          >
+            {/* Heilungs-Pfeile */}
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  width: '20px',
+                  height: '20px',
+                  transform: `rotate(${i * 90}deg) translateY(-30px)`,
+                  color: '#2ecc71',
+                  fontSize: '20px',
+                  animation: 'healArrow 1s infinite'
+                }}
+              >
+                ↑
+              </div>
+            ))}
+          </div>
+        );
+      case 'shield':
+        return (
+          <div
+            key={`${playerId}-shield-${effect.endTime}`}
+            style={{
+              position: 'absolute',
+              left: player.x,
+              top: player.y,
+              width: '60px',
+              height: '60px',
+              border: '3px solid #3498db',
+              borderRadius: '50%',
+              transform: 'translate(-50%, -50%)',
+              animation: 'shieldPulse 2s infinite',
+              pointerEvents: 'none'
+            }}
+          />
+        );
+      case 'speed':
+        return (
+          <div
+            key={`${playerId}-speed-${effect.endTime}`}
+            style={{
+              position: 'absolute',
+              left: player.x,
+              top: player.y,
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none'
+            }}
+          >
+            {/* Speed-Linien */}
+            {[0, 1].map((i) => (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  width: '30px',
+                  height: '2px',
+                  background: '#2ecc71',
+                  transform: `translateX(${-20 - i * 15}px)`,
+                  animation: 'speedLines 0.5s infinite'
+                }}
+              />
+            ))}
+          </div>
+        );
+      case 'damage':
+        return (
+          <div
+            key={`${playerId}-damage-${effect.endTime}`}
+            style={{
+              position: 'absolute',
+              left: player.x,
+              top: player.y,
+              width: '60px',
+              height: '60px',
+              transform: 'translate(-50%, -50%)',
+              pointerEvents: 'none'
+            }}
+          >
+            {/* Rote Aura */}
+            <div
+              style={{
+                position: 'absolute',
+                width: '100%',
+                height: '100%',
+                border: '2px solid #e74c3c',
+                borderRadius: '50%',
+                animation: 'damageAura 1s infinite'
+              }}
+            />
+          </div>
+        );
+    }
+  };
+
   return (
     <div
       style={{
@@ -449,6 +583,31 @@ const GameView: React.FC = () => {
         background: '#222',
       }}
     >
+      <style>
+        {`
+          @keyframes healArrow {
+            0% { transform: rotate(0deg) translateY(-30px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: rotate(0deg) translateY(-40px); opacity: 0; }
+          }
+          @keyframes shieldPulse {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+            50% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.3; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+          }
+          @keyframes speedLines {
+            0% { opacity: 0; transform: translateX(-35px); }
+            50% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(-50px); }
+          }
+          @keyframes damageAura {
+            0% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.2); opacity: 0.3; }
+            100% { transform: scale(1); opacity: 0.6; }
+          }
+        `}
+      </style>
+
       {/* Spieler-Render */}
       {Object.entries(players).map(([socketId, player]) => (
         <div
@@ -715,6 +874,9 @@ const GameView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Visuelle Effekte */}
+      {visualEffects.map(effect => renderVisualEffect(effect.playerId, effect))}
     </div>
   );
 };
