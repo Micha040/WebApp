@@ -85,7 +85,6 @@ const GameView: React.FC = () => {
     { item: null, quantity: 0 },
   ]);
   const [selectedSlot, setSelectedSlot] = useState<number>(0);
-  const [nearItems, setNearItems] = useState<Item[]>([]);
   const [selectedItemIndex, setSelectedItemIndex] = useState<number>(0);
   const [groundItems, setGroundItems] = useState<GroundItem[]>([]);
   const [selectedGroundItem, setSelectedGroundItem] = useState<GroundItem | null>(null);
@@ -131,11 +130,11 @@ const GameView: React.FC = () => {
         handleItemUse();
       }
       // Item-Auswahl mit Pfeiltasten
-      if (nearItems.length > 0) {
+      if (groundItems.length > 0) {
         if (e.key === 'ArrowLeft') {
           setSelectedItemIndex((prev) => (prev > 0 ? prev - 1 : prev));
         } else if (e.key === 'ArrowRight') {
-          setSelectedItemIndex((prev) => (prev < nearItems.length - 1 ? prev + 1 : prev));
+          setSelectedItemIndex((prev) => (prev < groundItems.length - 1 ? prev + 1 : prev));
         }
       }
     };
@@ -212,18 +211,10 @@ const GameView: React.FC = () => {
 
     const handleChestOpen = () => {
       if (nearChestId) {
+        console.log("Öffne Truhe:", nearChestId);
         socket.emit("openChest", nearChestId);
-        // Zufälliges Item aus der Truhe generieren
-        const randomItem: Item = {
-          id: crypto.randomUUID(),
-          name: "Heiltrank",
-          type: "heal",
-          effect_value: 20,
-          description: "Heilt 20 HP",
-          icon_url: "/items/heal_potion.png"
-        };
-        setNearItems([randomItem]);
-        setNearChestId(null);
+        // Die Truhe wird vom Server als geöffnet markiert
+        // und die Items werden vom Server generiert
       }
     };
 
@@ -283,7 +274,7 @@ const GameView: React.FC = () => {
       if (keysPressed.current['e']) {
         if (nearChestId) {
           handleChestOpen();
-        } else if (nearItems.length > 0) {
+        } else if (selectedGroundItem) {
           handleItemPickup();
         }
       }
@@ -299,7 +290,7 @@ const GameView: React.FC = () => {
       cancelAnimationFrame(animationFrame.current);
       clearInterval(interval);
     };
-  }, [players, username, chests, nearChestId, nearItems, selectedSlot, inventory, selectedItemIndex, selectedGroundItem]);
+  }, [players, username, chests, nearChestId, groundItems, selectedSlot, inventory, selectedItemIndex, selectedGroundItem]);
 
   useEffect(() => {
     socket.on("bulletSpawned", (bullet: Bullet) => {
@@ -498,6 +489,23 @@ const GameView: React.FC = () => {
             }}
           />
         ))}
+
+      {/* Truhen-Öffnen Hinweis */}
+      {nearChestId && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          color: 'white',
+          padding: '10px 16px',
+          borderRadius: '8px',
+          fontSize: '1rem',
+        }}>
+          Halte <strong>E</strong> zum Öffnen der Truhe
+        </div>
+      )}
 
       {/* Inventar */}
       <div style={{
