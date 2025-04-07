@@ -644,7 +644,7 @@ const GameView: React.FC = () => {
             }}
           >
             <img
-              src={`/skins/Balls/${player.skin.ball}.png`}
+              src={`/skins/Balls/sprite_${player.skin.ball}.png`}
               alt="ball"
               style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
             />
