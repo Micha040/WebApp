@@ -522,12 +522,28 @@ io.on("connection", (socket) => {
     const player = connectedPlayers[socket.id];
     if (!player) return;
 
+    // Feste Geschwindigkeit pro Frame
     const speed = 4;
 
-    if (directions.includes("up")) player.y -= speed;
-    if (directions.includes("down")) player.y += speed;
-    if (directions.includes("left")) player.x -= speed;
-    if (directions.includes("right")) player.x += speed;
+    // Berechne die Bewegungsrichtung
+    let dx = 0;
+    let dy = 0;
+
+    if (directions.includes("up")) dy -= 1;
+    if (directions.includes("down")) dy += 1;
+    if (directions.includes("left")) dx -= 1;
+    if (directions.includes("right")) dx += 1;
+
+    // Normalisiere die Diagonale (damit diagonale Bewegung nicht schneller ist)
+    if (dx !== 0 && dy !== 0) {
+      const length = Math.sqrt(dx * dx + dy * dy);
+      dx = dx / length;
+      dy = dy / length;
+    }
+
+    // Wende die normalisierte Geschwindigkeit an
+    player.x += dx * speed;
+    player.y += dy * speed;
 
     io.emit("playersUpdate", connectedPlayers);
   });
