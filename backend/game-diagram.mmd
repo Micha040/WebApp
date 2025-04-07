@@ -1,0 +1,177 @@
+classDiagram
+    %% Backend-Klassen
+    class Player {
+        +number x
+        +number y
+        +string username
+        +number health
+        +Object skin
+        +number? shield
+        +number? speedBoost
+        +number? damageBoost
+    }
+
+    class Item {
+        +string id
+        +string name
+        +string type
+        +number effect_value
+        +string description
+        +string icon_url
+    }
+
+    class Chest {
+        +string id
+        +number x
+        +number y
+        +boolean opened
+        +Item[] items
+    }
+
+    class Bullet {
+        +string id
+        +number x
+        +number y
+        +number vx
+        +number vy
+        +string ownerId
+    }
+
+    class Game {
+        +Map~string, Player~ players
+        +Bullet[] bullets
+        +Chest[] chests
+        +handleMove()
+        +handleShoot()
+        +handleItemUse()
+        +handleChestOpen()
+    }
+
+    class Lobby {
+        +string id
+        +string name
+        +string host
+        +Player[] players
+        +boolean isPrivate
+        +string gameMode
+        +boolean isStarted
+        +Game game
+        +addPlayer()
+        +removePlayer()
+        +startGame()
+        +endGame()
+    }
+
+    class LobbyManager {
+        +Map~string, Lobby~ lobbies
+        +createLobby()
+        +deleteLobby()
+        +joinLobby()
+        +leaveLobby()
+        +getLobbyList()
+    }
+
+    class AuthManager {
+        +validateUser()
+        +handleLogin()
+        +handleLogout()
+        +getUserData()
+    }
+
+    %% Frontend-Komponenten
+    class App {
+        +Router router
+        +AuthContext authContext
+        +handleAuth()
+    }
+
+    class LoginView {
+        +string username
+        +Object selectedSkin
+        +handleLogin()
+        +handleSkinChange()
+    }
+
+    class LobbyListView {
+        +Lobby[] availableLobbies
+        +handleCreateLobby()
+        +handleJoinLobby()
+        +handleRefresh()
+        +filterLobbies()
+    }
+
+    class LobbyView {
+        +string lobbyId
+        +Lobby currentLobby
+        +Player[] players
+        +boolean isHost
+        +handleStartGame()
+        +handleLeaveLobby()
+        +handleKickPlayer()
+        +handleGameModeChange()
+    }
+
+    class GameView {
+        +Record~string, Player~ players
+        +Bullet[] bullets
+        +string username
+        +Chest[] chests
+        +InventorySlot[] inventory
+        +GroundItem[] groundItems
+        +handleKeyDown()
+        +handleMouseMove()
+        +handleClick()
+        +handleItemUse()
+        +handleChestOpen()
+        +handleItemPickup()
+    }
+
+    class InventorySlot {
+        +Item item
+        +number quantity
+    }
+
+    class GroundItem {
+        +Item item
+        +number x
+        +number y
+    }
+
+    class Socket {
+        +emit()
+        +on()
+        +connect()
+        +disconnect()
+    }
+
+    %% Backend-Beziehungen
+    LobbyManager "1" --> "*" Lobby
+    Lobby "1" --> "*" Player
+    Lobby "1" --> "0..1" Game
+    Game "1" --> "*" Player
+    Game "1" --> "*" Bullet
+    Game "1" --> "*" Chest
+    Chest "1" --> "*" Item
+    Player "1" --> "*" Item
+    AuthManager "1" --> "*" Player
+
+    %% Frontend-Beziehungen
+    App "1" --> "1" Router
+    App "1" --> "1" AuthContext
+    Router "1" --> "1" LoginView
+    Router "1" --> "1" LobbyListView
+    Router "1" --> "1" LobbyView
+    Router "1" --> "1" GameView
+    GameView "1" --> "5" InventorySlot
+    GameView "1" --> "*" GroundItem
+    GameView "1" --> "1" Socket
+    LobbyView "1" --> "1" Socket
+    LobbyListView "1" --> "1" Socket
+    LoginView "1" --> "1" Socket
+    Socket "1" <--> "1" Game : WebSocket
+    Socket "1" <--> "1" LobbyManager : WebSocket
+    Socket "1" <--> "1" AuthManager : WebSocket
+    InventorySlot "1" --> "0..1" Item
+    GroundItem "1" --> "1" Item
+    LobbyView "1" --> "1" Lobby
+    LobbyListView "1" --> "*" Lobby 

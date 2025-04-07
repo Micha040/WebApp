@@ -1,0 +1,15 @@
+{
+  "entryPoints": ["./src/index.ts"],
+  "out": "docs",
+  "plugin": ["typedoc-plugin-mermaid"],
+  "theme": "default",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "includeVersion": true,
+  "umlClassDiagram": {
+    "type": "detailed",
+    "location": "local",
+    "format": "svg"
+  }
+}
