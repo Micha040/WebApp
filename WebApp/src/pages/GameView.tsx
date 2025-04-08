@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import EffectTimer from '../components/EffectTimer';
 import GameMap from '../components/GameMap';
+import { useNavigate } from 'react-router-dom';
 // import { useParams } from 'react-router-dom';
 
 // Typen außerhalb der Komponente definieren
@@ -106,6 +107,7 @@ const socket = io(import.meta.env.VITE_API_URL, {
 });
 
 const GameView: React.FC = () => {
+  const navigate = useNavigate();
   // Alle States am Anfang der Komponente definieren
   const [players, setPlayers] = useState<Record<string, Player>>({});
   const [bullets, setBullets] = useState<Bullet[]>([]);
@@ -757,6 +759,21 @@ const GameView: React.FC = () => {
         );
     }
   };
+
+  // Effekt für Socket-Events
+  useEffect(() => {
+    // ... existing code ...
+
+    // Höre auf navigateToGameOver-Event
+    socket.on('navigateToGameOver', () => {
+      navigate('/game-over');
+    });
+
+    return () => {
+      // ... existing code ...
+      socket.off('navigateToGameOver');
+    };
+  }, [navigate]);
 
   return (
     <div
