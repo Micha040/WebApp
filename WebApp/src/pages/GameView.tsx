@@ -16,6 +16,7 @@ type Player = {
     mouth: string;
     top: string;
   };
+  isAlive: boolean;
 };
 
 type Bullet = {
@@ -127,6 +128,7 @@ const GameView: React.FC = () => {
   const [showPlayerList, setShowPlayerList] = useState(false);
   const [ping, setPing] = useState<number | null>(null);
   const [mapData, setMapData] = useState<TiledMap | null>(null);
+  const [isDead, setIsDead] = useState<boolean>(false);
   
   // Ladebildschirm-States
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -172,9 +174,25 @@ const GameView: React.FC = () => {
   useEffect(() => {
     socket.on('playersUpdate', (data: Record<string, Player>) => {
       setPlayers(data);
+      
+      // Prüfe, ob der aktuelle Spieler gestorben ist
+      const currentPlayer = Object.values(data).find(p => p.username === username);
+      if (currentPlayer && !currentPlayer.isAlive && !isDead) {
+        setIsDead(true);
+      }
     });
     return () => {
       socket.off('playersUpdate');
+    };
+  }, [username, isDead]);
+
+  // Effekt für den Tod des Spielers
+  useEffect(() => {
+    socket.on('playerDied', () => {
+      setIsDead(true);
+    });
+    return () => {
+      socket.off('playerDied');
     };
   }, []);
 
@@ -248,13 +266,9 @@ const GameView: React.FC = () => {
       if (keysPressed.current['s']) directions.push('down');
       if (keysPressed.current['d']) directions.push('right');
 
-      if (directions.length > 0) {
+      if (directions.length > 0 && !isDead) {
         socket.emit('move', directions);
       }
-
-      
-      
-      
 
       setBullets((prev) =>
         prev
@@ -285,10 +299,9 @@ const GameView: React.FC = () => {
       mousePos.current = { x: e.clientX, y: e.clientY };
     };
 
-    
-    
-
     const handleClick = () => {
+      if (isDead) return; // Tote Spieler können nicht schießen
+      
       const currentPlayer = Object.values(players).find(p => p.username === username);
       if (!currentPlayer) return;
 
@@ -422,7 +435,7 @@ const GameView: React.FC = () => {
 
     // "E" gedrückt halten zum Öffnen/Aufsammeln
     const interval = setInterval(() => {
-      if (keysPressed.current['e']) {
+      if (keysPressed.current['e'] && !isDead) {
         if (nearChestId) {
           handleChestOpen();
         } else if (selectedGroundItem) {
@@ -441,7 +454,7 @@ const GameView: React.FC = () => {
       cancelAnimationFrame(animationFrame.current);
       clearInterval(interval);
     };
-  }, [players, username, chests, nearChestId, groundItems, selectedSlot, inventory, selectedItemIndex, selectedGroundItem]);
+  }, [players, username, chests, nearChestId, groundItems, selectedSlot, inventory, selectedItemIndex, selectedGroundItem, isDead]);
 
   useEffect(() => {
     socket.on("bulletSpawned", (bullet: Bullet) => {
@@ -1220,6 +1233,30 @@ const GameView: React.FC = () => {
 
       {/* Visuelle Effekte */}
       {visualEffects.map(effect => renderVisualEffect(effect.playerId, effect))}
+
+      {/* Todesanzeige */}
+      {isDead && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            color: 'white',
+            padding: '20px',
+            borderRadius: '10px',
+            textAlign: 'center',
+            zIndex: 1000,
+            border: '2px solid #ff0000',
+            boxShadow: '0 0 20px rgba(255, 0, 0, 0.5)',
+          }}
+        >
+          <h2 style={{ color: '#ff0000', marginBottom: '10px' }}>Du bist gestorben!</h2>
+          <p>Du kannst weiterhin dem Spiel zuschauen.</p>
+          <p>Drücke <strong>R</strong>, um das Spiel neu zu starten.</p>
+        </div>
+      )}
     </div>
   );
 };
