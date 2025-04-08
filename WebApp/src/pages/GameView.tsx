@@ -658,7 +658,7 @@ const GameView: React.FC = () => {
               alt="mouth"
               style={{ 
                 position: 'absolute', 
-                top: '60%', 
+                top: '45%', 
                 left: '50%', 
                 width: '60%',
                 transform: 'translate(-50%, -50%)'
