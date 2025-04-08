@@ -127,19 +127,45 @@ const GameView: React.FC = () => {
   const [showPlayerList, setShowPlayerList] = useState(false);
   const [ping, setPing] = useState<number | null>(null);
   const [mapData, setMapData] = useState<TiledMap | null>(null);
+  
+  // Ladebildschirm-States
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadingProgress, setLoadingProgress] = useState<number>(0);
+  const [loadingStep, setLoadingStep] = useState<string>('Initialisiere Spiel...');
+  const [loadingComplete, setLoadingComplete] = useState<boolean>(false);
 
   // Refs
   const keysPressed = useRef<{ [key: string]: boolean }>({});
   const animationFrame = useRef<number>(0);
   const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const loadingTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Effekte für Socket-Verbindung
   useEffect(() => {
     const storedUsername = localStorage.getItem('username');
     if (storedUsername) {
       setUsername(storedUsername);
-      socket.emit('join', { username: storedUsername });
+      setLoadingStep('Verbinde mit Server...');
+      setLoadingProgress(20);
+      
+      // Simuliere Ladezeit für bessere UX
+      loadingTimeout.current = setTimeout(() => {
+        socket.emit('join', { username: storedUsername });
+        setLoadingProgress(40);
+        setLoadingStep('Lade Spielerdaten...');
+      }, 1000);
+    } else {
+      // Wenn kein Benutzername gefunden wurde, zeige Fehlermeldung
+      setLoadingStep('Kein Benutzername gefunden. Bitte melde dich an.');
+      setLoadingProgress(0);
+      setLoadingComplete(true);
     }
+    
+    return () => {
+      if (loadingTimeout.current) {
+        clearTimeout(loadingTimeout.current);
+      }
+    };
   }, []);
 
   // Effekt für Spieler-Updates
@@ -172,6 +198,14 @@ const GameView: React.FC = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Funktion zum Anzeigen des Ladebildschirms
+  const showLoadingScreen = (message: string = 'Initialisiere Spiel...') => {
+    setIsLoading(true);
+    setLoadingProgress(0);
+    setLoadingStep(message);
+    setLoadingComplete(false);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -496,9 +530,12 @@ const GameView: React.FC = () => {
     setSelectedGroundItem(closestItem);
   }, [players, username, groundItems]);
 
-  // Verbessere das Map-Loading
+  // Effekt für das Laden der Map
   useEffect(() => {
     console.log('Versuche Map zu laden...');
+    setLoadingStep('Lade Spielkarte...');
+    setLoadingProgress(60);
+    
     fetch('/map.json')
       .then(response => {
         if (!response.ok) {
@@ -509,12 +546,82 @@ const GameView: React.FC = () => {
       .then(data => {
         console.log('Map erfolgreich geladen:', data);
         setMapData(data);
+        setLoadingProgress(80);
+        setLoadingStep('Lade Spielressourcen...');
+        
+        // Simuliere das Laden weiterer Ressourcen
+        setTimeout(() => {
+          setLoadingProgress(100);
+          setLoadingStep('Spiel bereit!');
+          setLoadingComplete(true);
+          
+          // Verzögere das Ausblenden des Ladebildschirms für bessere UX
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 1000);
+        }, 1500);
       })
       .catch(error => {
         console.error('Fehler beim Laden der Map:', error);
         console.error('Map konnte nicht unter /map.json gefunden werden');
+        setLoadingStep('Fehler beim Laden der Karte');
+        setLoadingProgress(0);
       });
   }, []);
+
+  // Event-Listener für das Verlassen des Ladebildschirms
+  useEffect(() => {
+    if (loadingComplete) {
+      const handleKeyPress = () => {
+        setIsLoading(false);
+      };
+      
+      window.addEventListener('keydown', handleKeyPress);
+      window.addEventListener('click', handleKeyPress);
+      
+      return () => {
+        window.removeEventListener('keydown', handleKeyPress);
+        window.removeEventListener('click', handleKeyPress);
+      };
+    }
+  }, [loadingComplete]);
+
+  // Funktion zum Neuladen des Spiels
+  const reloadGame = () => {
+    setIsLoading(true);
+    setLoadingProgress(0);
+    setLoadingStep('Initialisiere Spiel...');
+    setLoadingComplete(false);
+    
+    // Lade die Map neu
+    fetch('/map.json')
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        setMapData(data);
+        setLoadingProgress(80);
+        setLoadingStep('Lade Spielressourcen...');
+        
+        setTimeout(() => {
+          setLoadingProgress(100);
+          setLoadingStep('Spiel bereit!');
+          setLoadingComplete(true);
+          
+          setTimeout(() => {
+            setIsLoading(false);
+          }, 1000);
+        }, 1500);
+      })
+      .catch(error => {
+        console.error('Fehler beim Laden der Map:', error);
+        setLoadingStep('Fehler beim Laden der Karte');
+        setLoadingProgress(0);
+      });
+  };
 
   const renderVisualEffect = (playerId: string, effect: VisualEffect) => {
     const player = players[playerId];
@@ -646,6 +753,132 @@ const GameView: React.FC = () => {
         msUserSelect: 'none'
       }}
     >
+      {/* Ladebildschirm */}
+      {isLoading && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: '#111',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 9999,
+            color: 'white',
+            fontFamily: 'Arial, sans-serif',
+          }}
+        >
+          <div
+            style={{
+              width: '80%',
+              maxWidth: '500px',
+              marginBottom: '30px',
+            }}
+          >
+            <h1
+              style={{
+                fontSize: '2.5rem',
+                marginBottom: '20px',
+                textAlign: 'center',
+                color: '#4a9eff',
+                textShadow: '0 0 10px rgba(74, 158, 255, 0.5)',
+              }}
+            >
+              {loadingComplete ? 'Spiel bereit!' : 'Lade Spiel...'}
+            </h1>
+            
+            <div
+              style={{
+                width: '100%',
+                height: '20px',
+                backgroundColor: '#333',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                marginBottom: '15px',
+                boxShadow: 'inset 0 0 5px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              <div
+                style={{
+                  width: `${loadingProgress}%`,
+                  height: '100%',
+                  backgroundColor: loadingComplete ? '#4CAF50' : '#4a9eff',
+                  borderRadius: '10px',
+                  transition: 'width 0.5s ease-in-out',
+                  boxShadow: '0 0 10px rgba(74, 158, 255, 0.7)',
+                }}
+              />
+            </div>
+            
+            <p
+              style={{
+                fontSize: '1.2rem',
+                textAlign: 'center',
+                color: loadingComplete ? '#4CAF50' : '#aaa',
+                transition: 'color 0.3s ease-in-out',
+              }}
+            >
+              {loadingStep}
+            </p>
+            
+            {loadingComplete && (
+              <div
+                style={{
+                  marginTop: '30px',
+                  textAlign: 'center',
+                  animation: 'pulse 1.5s infinite',
+                }}
+              >
+                <p style={{ fontSize: '1.1rem', color: '#aaa' }}>
+                  Drücke eine beliebige Taste, um fortzufahren
+                </p>
+              </div>
+            )}
+            
+            {loadingProgress === 0 && loadingComplete && (
+              <div
+                style={{
+                  marginTop: '20px',
+                  textAlign: 'center',
+                }}
+              >
+                <button
+                  onClick={reloadGame}
+                  style={{
+                    padding: '10px 20px',
+                    backgroundColor: '#4a9eff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '5px',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.3s',
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#3a8eef'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4a9eff'}
+                >
+                  Neu laden
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <style>
+            {`
+              @keyframes pulse {
+                0% { opacity: 0.6; }
+                50% { opacity: 1; }
+                100% { opacity: 0.6; }
+              }
+            `}
+          </style>
+        </div>
+      )}
+      
       {mapData && <GameMap mapData={mapData} />}
       <style>
         {`
@@ -958,6 +1191,25 @@ const GameView: React.FC = () => {
           <div style={{ marginTop: '10px', fontSize: '0.8rem', opacity: 0.9 }}>
             Ping: {ping !== null ? `${ping} ms` : '–'}
           </div>
+          
+          <button
+            onClick={() => showLoadingScreen('Starte Spiel neu...')}
+            style={{
+              marginTop: '15px',
+              padding: '8px 16px',
+              backgroundColor: '#4a9eff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              transition: 'background-color 0.3s',
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#3a8eef'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#4a9eff'}
+          >
+            Spiel neu starten
+          </button>
         </div>
       )}
 
