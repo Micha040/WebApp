@@ -161,9 +161,30 @@ function getChestSpawnPoints(mapData: TiledMap): { x: number; y: number }[] {
   }));
 }
 
+// Funktion zum Extrahieren der Spieler-Spawn-Punkte aus der Map
+function getPlayerSpawnPoints(mapData: TiledMap): { x: number; y: number }[] {
+  const playerLayer = mapData.layers.find(
+    (layer) => layer.name === "PlayerSpawns"
+  );
+  console.log("Gefundener PlayerSpawns Layer:", playerLayer);
+
+  if (!playerLayer || !playerLayer.objects) {
+    console.log("Keine Spieler-Spawn-Punkte gefunden!");
+    return [];
+  }
+
+  console.log("Gefundene Spieler-Spawn-Punkte:", playerLayer.objects);
+  return playerLayer.objects.map((obj) => ({
+    x: obj.x,
+    y: obj.y,
+  }));
+}
+
 // Aktualisiere die Truhen basierend auf den Spawn-Punkten
 const spawnPoints = mapData ? getChestSpawnPoints(mapData) : [];
+const playerSpawnPoints = mapData ? getPlayerSpawnPoints(mapData) : [];
 console.log("Finale Spawn-Punkte:", spawnPoints);
+console.log("Finale Spieler-Spawn-Punkte:", playerSpawnPoints);
 
 const chests: Chest[] = spawnPoints.map((point, index) => ({
   id: `chest-${index + 1}`,
@@ -702,9 +723,17 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Wähle einen zufälligen Spawn-Punkt
+    const randomSpawnPoint =
+      playerSpawnPoints.length > 0
+        ? playerSpawnPoints[
+            Math.floor(Math.random() * playerSpawnPoints.length)
+          ]
+        : { x: 100 + Math.random() * 200, y: 100 + Math.random() * 200 };
+
     connectedPlayers[socket.id] = {
-      x: 100 + Math.random() * 200,
-      y: 100 + Math.random() * 200,
+      x: randomSpawnPoint.x,
+      y: randomSpawnPoint.y,
       username: data.username,
       health: 100,
       skin: skinData,
