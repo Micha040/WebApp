@@ -912,27 +912,35 @@ io.on("connection", (socket) => {
 
 // Game Loop für Spieler-Status-Updates
 setInterval(() => {
-  let playersUpdated = false;
+  let gameOver = false;
+  let winner = null;
 
   // Prüfe, ob Spieler gestorben sind
-  for (const [socketId, player] of Object.entries(connectedPlayers)) {
+  Object.entries(connectedPlayers).forEach(([socketId, player]) => {
     if (player.health <= 0 && player.isAlive) {
-      // Spieler ist gestorben, markiere als tot
       player.isAlive = false;
-      playersUpdated = true;
-
-      console.log(`💀 ${player.username} ist gestorben!`);
-
-      // Informiere den Client, dass er gestorben ist
       io.to(socketId).emit("playerDied");
     }
+  });
+
+  // Prüfe, ob nur noch ein Spieler am Leben ist
+  const alivePlayers = Object.values(connectedPlayers).filter(
+    (player) => player.isAlive
+  );
+  if (alivePlayers.length === 1) {
+    gameOver = true;
+    winner = alivePlayers[0];
+
+    // Sende Game-Over-Event an alle Spieler
+    io.emit("gameOver", winner);
+
+    // Navigiere alle Spieler zur Game-Over-Seite
+    io.emit("navigateToGameOver");
   }
 
-  // Sende Updates an alle Clients, wenn sich etwas geändert hat
-  if (playersUpdated) {
-    io.emit("playersUpdate", connectedPlayers);
-  }
-}, 1000); // Prüfe jede Sekunde
+  // Sende aktualisierte Spieler-Informationen an alle Clients
+  io.emit("playersUpdate", connectedPlayers);
+}, 1000);
 
 // Kollisionen prüfen & Leben abziehen
 setInterval(() => {
