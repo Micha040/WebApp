@@ -41,13 +41,55 @@ interface MapData {
   height: number;
 }
 
+interface TiledObject {
+  id: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  name?: string;
+  type?: string;
+}
+
+interface TiledLayer {
+  name: string;
+  type: string;
+  objects?: TiledObject[];
+  data?: number[];
+  width: number;
+  height: number;
+}
+
+interface TiledMap {
+  layers: TiledLayer[];
+  tilewidth: number;
+  tileheight: number;
+  width: number;
+  height: number;
+}
+
 // Lade die Map-Daten
-let mapData: MapData | null = null;
+let mapData: TiledMap | null = null;
 try {
   const mapPath = path.join(__dirname, "../public/map.json");
   console.log("Versuche Map zu laden von:", mapPath);
   if (fs.existsSync(mapPath)) {
-    mapData = JSON.parse(fs.readFileSync(mapPath, "utf-8"));
+    const rawData = JSON.parse(fs.readFileSync(mapPath, "utf-8"));
+    // Stelle sicher, dass die Daten dem TiledMap-Format entsprechen
+    mapData = {
+      layers: rawData.layers.map((layer: any) => ({
+        name: layer.name,
+        type: layer.type || "tilelayer",
+        objects: layer.objects,
+        data: layer.data,
+        width: layer.width,
+        height: layer.height,
+      })),
+      tilewidth: rawData.tilewidth,
+      tileheight: rawData.tileheight,
+      width: rawData.width,
+      height: rawData.height,
+    };
     console.log("Map erfolgreich geladen");
   } else {
     console.error("Map-Datei nicht gefunden:", mapPath);
@@ -75,7 +117,7 @@ function checkCollision(x: number, y: number): boolean {
   if (!mapData) return false;
 
   const solidLayer = mapData.layers.find((layer) => layer.name === "Solid");
-  if (!solidLayer) return false;
+  if (!solidLayer || !solidLayer.data) return false;
 
   // Konvertiere Weltkoordinaten in Tile-Koordinaten
   const tileX = Math.floor(x / mapData.tilewidth);
@@ -95,6 +137,29 @@ function checkCollision(x: number, y: number): boolean {
   const tileIndex = tileY * solidLayer.width + tileX;
   return solidLayer.data[tileIndex] !== 0; // 0 bedeutet kein Tile
 }
+
+// Funktion zum Extrahieren der Spawn-Punkte aus der Map
+function getChestSpawnPoints(mapData: TiledMap): { x: number; y: number }[] {
+  const chestLayer = mapData.layers.find(
+    (layer) => layer.name === "ChestSpawns"
+  );
+  if (!chestLayer || !chestLayer.objects) return [];
+
+  return chestLayer.objects.map((obj) => ({
+    x: obj.x,
+    y: obj.y,
+  }));
+}
+
+// Aktualisiere die Truhen basierend auf den Spawn-Punkten
+const spawnPoints = mapData ? getChestSpawnPoints(mapData) : [];
+const chests: Chest[] = spawnPoints.map((point, index) => ({
+  id: `chest-${index + 1}`,
+  x: point.x,
+  y: point.y,
+  opened: false,
+  items: [],
+}));
 
 // ✅ Lobby erstellen
 app.post("/lobby", async (req, res) => {
@@ -945,79 +1010,6 @@ type Chest = {
   opened: boolean;
   items: Item[];
 };
-
-const chests: Chest[] = [
-  {
-    id: "chest-1",
-    x: 300,
-    y: 300,
-    opened: false,
-    items: [],
-  },
-  {
-    id: "chest-2",
-    x: 600,
-    y: 200,
-    opened: false,
-    items: [],
-  },
-  {
-    id: "chest-3",
-    x: 150,
-    y: 150,
-    opened: false,
-    items: [],
-  },
-  {
-    id: "chest-4",
-    x: 800,
-    y: 400,
-    opened: false,
-    items: [],
-  },
-  {
-    id: "chest-5",
-    x: 400,
-    y: 600,
-    opened: false,
-    items: [],
-  },
-  {
-    id: "chest-6",
-    x: 700,
-    y: 700,
-    opened: false,
-    items: [],
-  },
-  {
-    id: "chest-7",
-    x: 200,
-    y: 500,
-    opened: false,
-    items: [],
-  },
-  {
-    id: "chest-8",
-    x: 900,
-    y: 100,
-    opened: false,
-    items: [],
-  },
-  {
-    id: "chest-9",
-    x: 500,
-    y: 400,
-    opened: false,
-    items: [],
-  },
-  {
-    id: "chest-10",
-    x: 100,
-    y: 700,
-    opened: false,
-    items: [],
-  },
-];
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
