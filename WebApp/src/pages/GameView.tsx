@@ -457,6 +457,7 @@ const GameView: React.FC = () => {
       }
     });
 
+    //test  
     setSelectedGroundItem(closestItem);
   }, [players, username, groundItems]);
 
