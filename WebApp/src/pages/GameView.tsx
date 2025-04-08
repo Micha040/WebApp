@@ -1257,7 +1257,7 @@ const GameView: React.FC = () => {
         >
           <h2 style={{ color: '#ff0000', marginBottom: '10px' }}>Du bist gestorben!</h2>
           <p>Du kannst weiterhin dem Spiel zuschauen.</p>
-          <p>Drücke <strong>R</strong>, um das Spiel neu zu starten.</p>
+          
         </div>
       )}
     </div>
