@@ -325,6 +325,7 @@ app.post("/messages", async (req, res) => {
     await updateLobbyActivity(lobbyId);
     res.json({ success: true });
 });
+//kjhadkjh
 // ✅ Zeichnungen empfangen
 app.post("/drawings", async (req, res) => {
     const { lobbyId, x, y, color, thickness } = req.body;
