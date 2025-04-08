@@ -3,6 +3,8 @@ import cors from "cors";
 import { randomUUID } from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 
@@ -22,6 +24,37 @@ const supabase = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_KEY!
 );
+
+// Lade die Map-Daten
+const mapData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "../public/map.json"), "utf-8")
+);
+
+// Hilfsfunktion zur Kollisionsprüfung
+function checkCollision(x: number, y: number): boolean {
+  const solidLayer = mapData.layers.find(
+    (layer: any) => layer.name === "Solid"
+  );
+  if (!solidLayer) return false;
+
+  // Konvertiere Weltkoordinaten in Tile-Koordinaten
+  const tileX = Math.floor(x / mapData.tilewidth);
+  const tileY = Math.floor(y / mapData.tileheight);
+
+  // Prüfe, ob die Position innerhalb der Map liegt
+  if (
+    tileX < 0 ||
+    tileX >= solidLayer.width ||
+    tileY < 0 ||
+    tileY >= solidLayer.height
+  ) {
+    return true; // Kollision mit Map-Grenzen
+  }
+
+  // Hole den Tile-Index an der Position
+  const tileIndex = tileY * solidLayer.width + tileX;
+  return solidLayer.data[tileIndex] !== 0; // 0 bedeutet kein Tile
+}
 
 // ✅ Lobby erstellen
 app.post("/lobby", async (req, res) => {
@@ -558,15 +591,11 @@ io.on("connection", (socket) => {
     const player = connectedPlayers[socket.id];
     if (!player) return;
 
-    // Basis-Geschwindigkeit
     let speed = 4;
-
-    // Wende Geschwindigkeitsboost an, falls aktiv
     if (player.speedBoost) {
       speed *= 1 + player.speedBoost / 100;
     }
 
-    // Berechne die Bewegungsrichtung
     let dx = 0;
     let dy = 0;
 
@@ -575,18 +604,22 @@ io.on("connection", (socket) => {
     if (directions.includes("left")) dx -= 1;
     if (directions.includes("right")) dx += 1;
 
-    // Normalisiere die Diagonale
     if (dx !== 0 && dy !== 0) {
       const length = Math.sqrt(dx * dx + dy * dy);
       dx = dx / length;
       dy = dy / length;
     }
 
-    // Wende die normalisierte Geschwindigkeit an
-    player.x += dx * speed;
-    player.y += dy * speed;
+    // Neue Position berechnen
+    const newX = player.x + dx * speed;
+    const newY = player.y + dy * speed;
 
-    io.emit("playersUpdate", connectedPlayers);
+    // Kollisionsprüfung
+    if (!checkCollision(newX, newY)) {
+      player.x = newX;
+      player.y = newY;
+      io.emit("playersUpdate", connectedPlayers);
+    }
   });
 
   // socket.on("shoot", ({ x, y, dx, dy }) => {

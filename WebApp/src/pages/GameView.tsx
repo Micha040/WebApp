@@ -599,6 +599,10 @@ const GameView: React.FC = () => {
         width: '100%',
         height: '100vh',
         background: '#222',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none'
       }}
     >
       <style>
@@ -644,6 +648,10 @@ const GameView: React.FC = () => {
               fontSize: '0.7rem',
               textAlign: 'center',
               marginBottom: 4,
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none'
             }}
           >
             {player.username}
@@ -764,6 +772,10 @@ const GameView: React.FC = () => {
           padding: '10px 16px',
           borderRadius: '8px',
           fontSize: '1rem',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none'
         }}>
           Halte <strong>E</strong> zum Öffnen der Truhe
         </div>
@@ -862,6 +874,10 @@ const GameView: React.FC = () => {
           padding: '10px 16px',
           borderRadius: '8px',
           fontSize: '1rem',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          MozUserSelect: 'none',
+          msUserSelect: 'none'
         }}>
           Halte <strong>E</strong> zum Aufheben von {selectedGroundItem.item.name}
         </div>
@@ -884,6 +900,10 @@ const GameView: React.FC = () => {
             minWidth: '250px',
             textAlign: 'center',
             fontSize: '0.9rem',
+            userSelect: 'none',
+            WebkitUserSelect: 'none',
+            MozUserSelect: 'none',
+            msUserSelect: 'none'
           }}
         >
           <strong>Spieler online:</strong>
