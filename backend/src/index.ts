@@ -603,6 +603,10 @@ app.post("/lobby/start", async (req, res) => {
     payload: { message: "Das Spiel wurde gestartet", lobbyId },
   });
 
+  // Sende die Kisten an alle verbundenen Clients
+  io.emit("chestsUpdate", chests);
+  console.log("🧰 Kisten beim Spielstart gesendet:", chests);
+
   res
     .status(200)
     .json({ message: "Spiel wurde gestartet und Skin gespeichert" });
@@ -663,7 +667,10 @@ const bullets: Bullet[] = [];
 io.on("connection", (socket) => {
   // console.log("🟢 Neue Socket-Verbindung:", socket.id); // ← ganz oben
   // console.log(`🟢 Spieler verbunden: ${socket.id}`);
+
+  // Sende die Kisten sofort bei der Verbindung
   socket.emit("chestsUpdate", chests);
+  console.log("🧰 Kisten bei Verbindung gesendet:", chests);
 
   socket.onAny((event, ...args) => {
     // console.log(`📡 [SOCKET EVENT] ${event}`, args);
