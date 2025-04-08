@@ -448,8 +448,13 @@ const GameView: React.FC = () => {
       setBullets((prev) => [...prev, bullet]);
     });
 
+    socket.on("bulletsUpdate", (updatedBullets: Bullet[]) => {
+      setBullets(updatedBullets);
+    });
+
     return () => {
       socket.off("bulletSpawned");
+      socket.off("bulletsUpdate");
     };
   }, []);
 
