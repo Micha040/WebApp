@@ -879,8 +879,8 @@ const GameView: React.FC = () => {
           </div>
         ))}
       </div>
-
-      {/* Items auf dem Boden */}
+      
+      {/* Items auf dem Boden adsf*/}
       {groundItems.map((groundItem) => (
         <div
           key={groundItem.item.id}
