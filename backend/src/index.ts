@@ -25,16 +25,56 @@ const supabase = createClient(
   process.env.SUPABASE_KEY!
 );
 
+// Map-Typen definieren
+interface MapLayer {
+  data: number[];
+  width: number;
+  height: number;
+  name: string;
+}
+
+interface MapData {
+  layers: MapLayer[];
+  tilewidth: number;
+  tileheight: number;
+  width: number;
+  height: number;
+}
+
 // Lade die Map-Daten
-const mapData = JSON.parse(
-  fs.readFileSync(path.join(__dirname, "../public/map.json"), "utf-8")
-);
+let mapData: MapData | null = null;
+try {
+  const mapPath = path.join(__dirname, "../public/map.json");
+  console.log("Versuche Map zu laden von:", mapPath);
+  if (fs.existsSync(mapPath)) {
+    mapData = JSON.parse(fs.readFileSync(mapPath, "utf-8"));
+    console.log("Map erfolgreich geladen");
+  } else {
+    console.error("Map-Datei nicht gefunden:", mapPath);
+    mapData = {
+      layers: [],
+      tilewidth: 32,
+      tileheight: 32,
+      width: 30,
+      height: 30,
+    };
+  }
+} catch (error) {
+  console.error("Fehler beim Laden der Map:", error);
+  mapData = {
+    layers: [],
+    tilewidth: 32,
+    tileheight: 32,
+    width: 30,
+    height: 30,
+  };
+}
 
 // Hilfsfunktion zur Kollisionsprüfung
 function checkCollision(x: number, y: number): boolean {
-  const solidLayer = mapData.layers.find(
-    (layer: any) => layer.name === "Solid"
-  );
+  if (!mapData) return false;
+
+  const solidLayer = mapData.layers.find((layer) => layer.name === "Solid");
   if (!solidLayer) return false;
 
   // Konvertiere Weltkoordinaten in Tile-Koordinaten

@@ -22,9 +22,39 @@ app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 const supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 // Lade die Map-Daten
-const mapData = JSON.parse(fs_1.default.readFileSync(path_1.default.join(__dirname, "../public/map.json"), "utf-8"));
+let mapData = null;
+try {
+    const mapPath = path_1.default.join(__dirname, "../public/map.json");
+    console.log("Versuche Map zu laden von:", mapPath);
+    if (fs_1.default.existsSync(mapPath)) {
+        mapData = JSON.parse(fs_1.default.readFileSync(mapPath, "utf-8"));
+        console.log("Map erfolgreich geladen");
+    }
+    else {
+        console.error("Map-Datei nicht gefunden:", mapPath);
+        mapData = {
+            layers: [],
+            tilewidth: 32,
+            tileheight: 32,
+            width: 30,
+            height: 30,
+        };
+    }
+}
+catch (error) {
+    console.error("Fehler beim Laden der Map:", error);
+    mapData = {
+        layers: [],
+        tilewidth: 32,
+        tileheight: 32,
+        width: 30,
+        height: 30,
+    };
+}
 // Hilfsfunktion zur Kollisionsprüfung
 function checkCollision(x, y) {
+    if (!mapData)
+        return false;
     const solidLayer = mapData.layers.find((layer) => layer.name === "Solid");
     if (!solidLayer)
         return false;
