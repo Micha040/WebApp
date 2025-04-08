@@ -140,11 +140,21 @@ function checkCollision(x: number, y: number): boolean {
 
 // Funktion zum Extrahieren der Spawn-Punkte aus der Map
 function getChestSpawnPoints(mapData: TiledMap): { x: number; y: number }[] {
+  console.log(
+    "Verfügbare Layer:",
+    mapData.layers.map((l) => l.name)
+  );
   const chestLayer = mapData.layers.find(
     (layer) => layer.name === "ChestSpawns"
   );
-  if (!chestLayer || !chestLayer.objects) return [];
+  console.log("Gefundener ChestSpawns Layer:", chestLayer);
 
+  if (!chestLayer || !chestLayer.objects) {
+    console.log("Keine Spawn-Punkte gefunden!");
+    return [];
+  }
+
+  console.log("Gefundene Spawn-Punkte:", chestLayer.objects);
   return chestLayer.objects.map((obj) => ({
     x: obj.x,
     y: obj.y,
@@ -153,6 +163,8 @@ function getChestSpawnPoints(mapData: TiledMap): { x: number; y: number }[] {
 
 // Aktualisiere die Truhen basierend auf den Spawn-Punkten
 const spawnPoints = mapData ? getChestSpawnPoints(mapData) : [];
+console.log("Finale Spawn-Punkte:", spawnPoints);
+
 const chests: Chest[] = spawnPoints.map((point, index) => ({
   id: `chest-${index + 1}`,
   x: point.x,
@@ -160,6 +172,8 @@ const chests: Chest[] = spawnPoints.map((point, index) => ({
   opened: false,
   items: [],
 }));
+
+console.log("Initialisierte Truhen:", chests);
 
 // ✅ Lobby erstellen
 app.post("/lobby", async (req, res) => {
