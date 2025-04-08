@@ -587,6 +587,7 @@ io.on("connection", (socket) => {
             vx: bulletData.vx,
             vy: bulletData.vy,
             ownerId: socket.id,
+            createdAt: Date.now(),
         };
         bullets.push(bullet);
         io.emit("bulletSpawned", bullet);
@@ -670,29 +671,39 @@ io.on("connection", (socket) => {
 });
 // Kollisionen prüfen & Leben abziehen
 setInterval(() => {
-    bullets.forEach((bullet) => {
-        bullet.x += bullet.vx;
-        bullet.y += bullet.vy;
-    });
-    const playerRadius = 20;
-    const bulletRadius = 5;
-    const collisionDistance = playerRadius + bulletRadius;
-    bullets.forEach((bullet, index) => {
+    const now = Date.now();
+    // Entferne alte Geschosse (älter als 5 Sekunden)
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        if (now - bullets[i].createdAt > 5000) {
+            bullets.splice(i, 1);
+            continue;
+        }
+        // Aktualisiere Position
+        bullets[i].x += bullets[i].vx;
+        bullets[i].y += bullets[i].vy;
+        // Prüfe Kollision mit Wänden
+        if (checkCollision(bullets[i].x, bullets[i].y)) {
+            bullets.splice(i, 1);
+            continue;
+        }
+        // Prüfe Kollision mit Spielern
+        const playerRadius = 20;
+        const bulletRadius = 5;
+        const collisionDistance = playerRadius + bulletRadius;
         for (const [socketId, player] of Object.entries(connectedPlayers)) {
-            if (bullet.ownerId === socketId)
+            if (bullets[i].ownerId === socketId)
                 continue;
-            const dx = player.x - bullet.x;
-            const dy = player.y - bullet.y;
+            const dx = player.x - bullets[i].x;
+            const dy = player.y - bullets[i].y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance < collisionDistance) {
                 // Basis-Schaden
                 let damage = 2;
                 // Erhöhe Schaden, wenn Schütze einen Schadensboost hat
-                const shooter = connectedPlayers[bullet.ownerId];
+                const shooter = connectedPlayers[bullets[i].ownerId];
                 if (shooter && shooter.damageBoost) {
                     damage *= 1 + shooter.damageBoost / 100;
                 }
-                //tesr
                 // Reduziere Schaden durch Schild
                 if (player.shield) {
                     const blockedDamage = Math.min(damage, player.shield);
@@ -704,13 +715,13 @@ setInterval(() => {
                 }
                 // Wende finalen Schaden an
                 player.health = Math.max(player.health - damage, 0);
-                bullets.splice(index, 1);
+                bullets.splice(i, 1);
                 console.log(`💥 ${player.username} wurde getroffen! ➖ ${damage.toFixed(1)} HP (neu: ${player.health})`);
                 io.emit("playersUpdate", connectedPlayers);
                 break;
             }
         }
-    });
+    }
 }, 50);
 // Liste aller möglichen Items
 const possibleItems = [
