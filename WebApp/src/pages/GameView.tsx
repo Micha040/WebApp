@@ -467,6 +467,7 @@ const GameView: React.FC = () => {
 
     switch (effect.type) {
       case 'heal':
+        console.log("heal")
         return (
           <div
             key={`${playerId}-heal-${effect.endTime}`}

@@ -682,6 +682,8 @@ io.on("connection", (socket) => {
       chest.opened = true;
       // Generiere zufällige Items für die Truhe
       chest.items = generateRandomItems();
+
+      // Sende sofort ein Update an alle Clients
       io.emit("chestsUpdate", chests);
 
       // Sende die Items an ALLE Spieler zusammen mit der Truhenposition
@@ -692,6 +694,7 @@ io.on("connection", (socket) => {
           return { item, position };
         });
 
+        // Sende die Items sofort
         io.emit("itemsSpawned", itemsWithPositions);
       }
 
