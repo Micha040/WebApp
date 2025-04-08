@@ -671,6 +671,7 @@ const connectedPlayers: Record<
     shield?: number;
     speedBoost?: number;
     damageBoost?: number;
+    isAlive: boolean;
   }
 > = {};
 
@@ -738,6 +739,7 @@ io.on("connection", (socket) => {
       username: data.username,
       health: 100,
       skin: skinData,
+      isAlive: true,
     };
 
     io.emit("playersUpdate", connectedPlayers);
@@ -745,7 +747,7 @@ io.on("connection", (socket) => {
 
   socket.on("move", (directions: string[]) => {
     const player = connectedPlayers[socket.id];
-    if (!player) return;
+    if (!player || !player.isAlive) return;
 
     let speed = 4;
     if (player.speedBoost) {
@@ -786,6 +788,9 @@ io.on("connection", (socket) => {
   // });
 
   socket.on("bulletFired", (bulletData) => {
+    const player = connectedPlayers[socket.id];
+    if (!player || !player.isAlive) return;
+
     const id = crypto.randomUUID();
     const bullet: Bullet = {
       id,
@@ -805,7 +810,7 @@ io.on("connection", (socket) => {
     "useItem",
     (data: { type: string; value: number; duration?: number }) => {
       const player = connectedPlayers[socket.id];
-      if (!player) return;
+      if (!player || !player.isAlive) return;
 
       const now = Date.now();
       const duration = data.duration || 0;
@@ -859,7 +864,7 @@ io.on("connection", (socket) => {
 
   socket.on("openChest", (chestId: string) => {
     const player = connectedPlayers[socket.id];
-    if (!player) return;
+    if (!player || !player.isAlive) return;
 
     const chest = chests.find((c) => c.id === chestId && !c.opened);
     if (!chest) return;
@@ -905,6 +910,30 @@ io.on("connection", (socket) => {
   });
 });
 
+// Game Loop für Spieler-Status-Updates
+setInterval(() => {
+  let playersUpdated = false;
+
+  // Prüfe, ob Spieler gestorben sind
+  for (const [socketId, player] of Object.entries(connectedPlayers)) {
+    if (player.health <= 0 && player.isAlive) {
+      // Spieler ist gestorben, markiere als tot
+      player.isAlive = false;
+      playersUpdated = true;
+
+      console.log(`💀 ${player.username} ist gestorben!`);
+
+      // Informiere den Client, dass er gestorben ist
+      io.to(socketId).emit("playerDied");
+    }
+  }
+
+  // Sende Updates an alle Clients, wenn sich etwas geändert hat
+  if (playersUpdated) {
+    io.emit("playersUpdate", connectedPlayers);
+  }
+}, 1000); // Prüfe jede Sekunde
+
 // Kollisionen prüfen & Leben abziehen
 setInterval(() => {
   const now = Date.now();
@@ -937,6 +966,9 @@ setInterval(() => {
     for (const [socketId, player] of Object.entries(connectedPlayers)) {
       // Überspringe den Spieler, der die Kugel geschossen hat
       if (bullets[i].ownerId === socketId) continue;
+
+      // Überspringe tote Spieler
+      if (!player.isAlive) continue;
 
       const dx = player.x - bullets[i].x;
       const dy = player.y - bullets[i].y;
