@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import EffectTimer from '../components/EffectTimer';
+import GameMap from '../components/GameMap';
 // import { useParams } from 'react-router-dom';
 
 // Typen außerhalb der Komponente definieren
@@ -106,6 +107,7 @@ const GameView: React.FC = () => {
   const [visualEffects, setVisualEffects] = useState<VisualEffect[]>([]);
   const [showPlayerList, setShowPlayerList] = useState(false);
   const [ping, setPing] = useState<number | null>(null);
+  const [mapData, setMapData] = useState<any>(null);
 
   // Refs
   const keysPressed = useRef<{ [key: string]: boolean }>({});
@@ -475,6 +477,17 @@ const GameView: React.FC = () => {
     setSelectedGroundItem(closestItem);
   }, [players, username, groundItems]);
 
+  // Lade die Map-Daten
+  useEffect(() => {
+    fetch('/map.json')
+      .then(response => response.json())
+      .then(data => {
+        setMapData(data);
+        console.log('Map data loaded:', data);
+      })
+      .catch(error => console.error('Error loading map:', error));
+  }, []);
+
   const renderVisualEffect = (playerId: string, effect: VisualEffect) => {
     const player = players[playerId];
     if (!player) return null;
@@ -605,6 +618,7 @@ const GameView: React.FC = () => {
         msUserSelect: 'none'
       }}
     >
+      {mapData && <GameMap mapData={mapData} />}
       <style>
         {`
           @keyframes healArrow {
