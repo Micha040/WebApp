@@ -908,11 +908,13 @@ io.on("connection", (socket) => {
 // Kollisionen prüfen & Leben abziehen
 setInterval(() => {
   const now = Date.now();
+  let bulletsUpdated = false;
 
   // Entferne alte Geschosse (älter als 5 Sekunden)
   for (let i = bullets.length - 1; i >= 0; i--) {
     if (now - bullets[i].createdAt > 5000) {
       bullets.splice(i, 1);
+      bulletsUpdated = true;
       continue;
     }
 
@@ -923,6 +925,7 @@ setInterval(() => {
     // Prüfe Kollision mit Wänden
     if (checkCollision(bullets[i].x, bullets[i].y)) {
       bullets.splice(i, 1);
+      bulletsUpdated = true;
       continue;
     }
 
@@ -962,6 +965,7 @@ setInterval(() => {
         // Wende finalen Schaden an
         player.health = Math.max(player.health - damage, 0);
         bullets.splice(i, 1);
+        bulletsUpdated = true;
 
         console.log(
           `💥 ${player.username} wurde getroffen! ➖ ${damage.toFixed(
@@ -973,6 +977,11 @@ setInterval(() => {
         break;
       }
     }
+  }
+
+  // Sende aktualisierte Bullets an alle Clients, wenn sich etwas geändert hat
+  if (bulletsUpdated) {
+    io.emit("bulletsUpdate", bullets);
   }
 }, 50);
 
