@@ -932,6 +932,7 @@ const GameView: React.FC = () => {
             left: player.x,
             top: player.y,
             transform: 'translate(-50%, -50%)',
+            display: player.isAlive ? 'block' : 'none',
           }}
         >
           {/* Name */}
@@ -1239,9 +1240,9 @@ const GameView: React.FC = () => {
         <div
           style={{
             position: 'fixed',
-            top: '50%',
+            bottom: '20%',
             left: '50%',
-            transform: 'translate(-50%, -50%)',
+            transform: 'translateX(-50%)',
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             color: 'white',
             padding: '20px',
@@ -1250,6 +1251,8 @@ const GameView: React.FC = () => {
             zIndex: 1000,
             border: '2px solid #ff0000',
             boxShadow: '0 0 20px rgba(255, 0, 0, 0.5)',
+            width: '80%',
+            maxWidth: '500px',
           }}
         >
           <h2 style={{ color: '#ff0000', marginBottom: '10px' }}>Du bist gestorben!</h2>
