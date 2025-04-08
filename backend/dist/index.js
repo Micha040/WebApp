@@ -57,7 +57,7 @@ app.post("/lobby", async (req, res) => {
             top: "none",
             ball: "sprite_1",
             eyes: "sprite_1",
-            mouth: "Mouth_Default",
+            mouth: "sprite_1",
         },
     ]);
     if (skinError) {
@@ -122,7 +122,7 @@ app.post("/lobby/join", async (req, res) => {
                 top: "none",
                 ball: "sprite_1",
                 eyes: "sprite_1",
-                mouth: "Mouth_Default",
+                mouth: "sprite_1",
             },
         ]);
         if (skinInsertError) {
