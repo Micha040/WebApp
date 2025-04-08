@@ -935,6 +935,7 @@ setInterval(() => {
     const collisionDistance = playerRadius + bulletRadius;
 
     for (const [socketId, player] of Object.entries(connectedPlayers)) {
+      // Überspringe den Spieler, der die Kugel geschossen hat
       if (bullets[i].ownerId === socketId) continue;
 
       const dx = player.x - bullets[i].x;
@@ -983,7 +984,7 @@ setInterval(() => {
   if (bulletsUpdated) {
     io.emit("bulletsUpdate", bullets);
   }
-}, 1);
+}, 16);
 
 type Item = {
   id: string;
