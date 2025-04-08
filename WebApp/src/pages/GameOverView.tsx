@@ -24,7 +24,6 @@ const GameOverView: React.FC = () => {
   const navigate = useNavigate();
   const [winner, setWinner] = useState<Player | null>(null);
   const [players, setPlayers] = useState<Record<string, Player>>({});
-  const [countdown, setCountdown] = useState<number>(10);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
 
   useEffect(() => {
@@ -46,27 +45,16 @@ const GameOverView: React.FC = () => {
       setShowConfetti(true);
     });
 
-    // Starte Countdown für Neustart
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          // Navigiere zurück zur Lobby nach Ablauf des Countdowns
-          setTimeout(() => {
-            navigate('/lobby');
-          }, 1000);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
     return () => {
       socket.off('playersUpdate');
       socket.off('gameOver');
-      clearInterval(timer);
     };
   }, [navigate]);
+
+  // Funktion zum Zurückkehren zur Startseite
+  const handleReturnToHome = () => {
+    navigate('/');
+  };
 
   // Konfetti-Effekt
   useEffect(() => {
@@ -328,15 +316,32 @@ const GameOverView: React.FC = () => {
           </div>
         </div>
 
-        <div
+        {/* Button zum Zurückkehren zur Startseite */}
+        <button
+          onClick={handleReturnToHome}
           style={{
             marginTop: '30px',
+            padding: '12px 24px',
+            backgroundColor: '#4a9eff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
             fontSize: '1.2rem',
-            color: '#ccc',
+            cursor: 'pointer',
+            transition: 'background-color 0.3s, transform 0.2s',
+            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = '#3a8eef';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = '#4a9eff';
+            e.currentTarget.style.transform = 'translateY(0)';
           }}
         >
-          <p>Zurück zur Lobby in {countdown} Sekunden...</p>
-        </div>
+          Zurück zur Startseite
+        </button>
       </div>
 
       {/* CSS für Animationen */}
