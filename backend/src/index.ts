@@ -983,7 +983,7 @@ setInterval(() => {
   if (bulletsUpdated) {
     io.emit("bulletsUpdate", bullets);
   }
-}, 50);
+}, 1);
 
 type Item = {
   id: string;

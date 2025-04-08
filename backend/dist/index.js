@@ -730,7 +730,7 @@ setInterval(() => {
     if (bulletsUpdated) {
         io.emit("bulletsUpdate", bullets);
     }
-}, 50);
+}, 1);
 // Liste aller möglichen Items
 const possibleItems = [
     {
