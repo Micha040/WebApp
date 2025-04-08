@@ -76,6 +76,28 @@ type VisualEffect = {
   endTime: number;
 };
 
+// Füge den TiledMap-Typ hinzu
+interface TiledMap {
+  height: number;
+  width: number;
+  layers: {
+    data: number[];
+    height: number;
+    id: number;
+    name: string;
+    opacity: number;
+    type: string;
+    visible: boolean;
+    width: number;
+    x: number;
+    y: number;
+  }[];
+  tileheight: number;
+  tilewidth: number;
+  type: string;
+  version: string;
+}
+
 // Socket-Verbindung außerhalb der Komponente erstellen
 const socket = io(import.meta.env.VITE_API_URL, {
   withCredentials: true,
@@ -107,7 +129,7 @@ const GameView: React.FC = () => {
   const [visualEffects, setVisualEffects] = useState<VisualEffect[]>([]);
   const [showPlayerList, setShowPlayerList] = useState(false);
   const [ping, setPing] = useState<number | null>(null);
-  const [mapData, setMapData] = useState<any>(null);
+  const [mapData, setMapData] = useState<TiledMap | null>(null);
 
   // Refs
   const keysPressed = useRef<{ [key: string]: boolean }>({});
@@ -477,15 +499,24 @@ const GameView: React.FC = () => {
     setSelectedGroundItem(closestItem);
   }, [players, username, groundItems]);
 
-  // Lade die Map-Daten
+  // Verbessere das Map-Loading
   useEffect(() => {
+    console.log('Versuche Map zu laden...');
     fetch('/map.json')
-      .then(response => response.json())
-      .then(data => {
-        setMapData(data);
-        console.log('Map data loaded:', data);
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
       })
-      .catch(error => console.error('Error loading map:', error));
+      .then(data => {
+        console.log('Map erfolgreich geladen:', data);
+        setMapData(data);
+      })
+      .catch(error => {
+        console.error('Fehler beim Laden der Map:', error);
+        console.error('Map konnte nicht unter /map.json gefunden werden');
+      });
   }, []);
 
   const renderVisualEffect = (playerId: string, effect: VisualEffect) => {

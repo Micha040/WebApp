@@ -1,22 +1,30 @@
 import React from 'react';
 
-interface MapLayer {
+interface TiledLayer {
   data: number[];
-  width: number;
   height: number;
+  id: number;
   name: string;
+  opacity: number;
+  type: string;
+  visible: boolean;
+  width: number;
+  x: number;
+  y: number;
 }
 
-interface MapData {
-  layers: MapLayer[];
-  tilewidth: number;
-  tileheight: number;
-  width: number;
+interface TiledMap {
   height: number;
+  width: number;
+  layers: TiledLayer[];
+  tileheight: number;
+  tilewidth: number;
+  type: string;
+  version: string;
 }
 
 interface GameMapProps {
-  mapData: MapData;
+  mapData: TiledMap;
 }
 
 const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
@@ -31,38 +39,43 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
         zIndex: -1,
       }}
     >
-      {mapData.layers.map((layer, layerIndex) => (
-        <div key={layer.name} style={{ position: 'absolute', top: 0, left: 0 }}>
-          {layer.data.map((tileId, index) => {
-            if (tileId === 0) return null; // Leere Tiles nicht rendern
+      {mapData.layers.map((layer) => {
+        // Nur Tile-Layer rendern
+        if (layer.type !== 'tilelayer') return null;
 
-            const x = (index % layer.width) * mapData.tilewidth;
-            const y = Math.floor(index / layer.width) * mapData.tileheight;
+        return (
+          <div key={layer.name} style={{ position: 'absolute', top: 0, left: 0 }}>
+            {layer.data.map((tileId, index) => {
+              if (tileId === 0) return null; // Leere Tiles nicht rendern
 
-            let backgroundColor = '';
-            if (layer.name === 'Ground') {
-              backgroundColor = '#4a9c2d'; // Grün für Ground
-            } else if (layer.name === 'Solid') {
-              backgroundColor = '#8B4513'; // Braun für Solid/Wände
-            }
+              const x = (index % layer.width) * mapData.tilewidth;
+              const y = Math.floor(index / layer.width) * mapData.tileheight;
 
-            return (
-              <div
-                key={`${layerIndex}-${index}`}
-                style={{
-                  position: 'absolute',
-                  left: x,
-                  top: y,
-                  width: mapData.tilewidth,
-                  height: mapData.tileheight,
-                  backgroundColor,
-                  border: '1px solid rgba(0,0,0,0.1)',
-                }}
-              />
-            );
-          })}
-        </div>
-      ))}
+              let backgroundColor = '';
+              if (layer.name === 'Ground') {
+                backgroundColor = '#4a9c2d'; // Grün für Ground
+              } else if (layer.name === 'Solid') {
+                backgroundColor = '#8B4513'; // Braun für Solid/Wände
+              }
+
+              return (
+                <div
+                  key={`${layer.name}-${index}`}
+                  style={{
+                    position: 'absolute',
+                    left: x,
+                    top: y,
+                    width: mapData.tilewidth,
+                    height: mapData.tileheight,
+                    backgroundColor,
+                    border: '1px solid rgba(0,0,0,0.1)',
+                  }}
+                />
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 };
