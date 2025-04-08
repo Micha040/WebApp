@@ -95,7 +95,13 @@ export default function SkinEditor({
           <img
             src={`/skins/Mouths/${mouthOptions[mouthIndex]}.png`}
             alt="mouth"
-            style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+            style={{ 
+              position: 'absolute', 
+              top: '60%', 
+              left: '50%', 
+              width: '60%',
+              transform: 'translate(-50%, -50%)'
+            }}
           />
           {/* top = leer, Platzhalter für später */}
         </div>

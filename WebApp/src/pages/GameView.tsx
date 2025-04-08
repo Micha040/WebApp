@@ -656,7 +656,13 @@ const GameView: React.FC = () => {
             <img
               src={`/skins/Mouths/${player.skin.mouth}.png`}
               alt="mouth"
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+              style={{ 
+                position: 'absolute', 
+                top: '60%', 
+                left: '50%', 
+                width: '60%',
+                transform: 'translate(-50%, -50%)'
+              }}
             />
             {player.skin.top !== 'none' && (
               <img
