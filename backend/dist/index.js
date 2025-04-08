@@ -675,24 +675,30 @@ io.on("connection", (socket) => {
 });
 // Game Loop für Spieler-Status-Updates
 setInterval(() => {
-    let gameOver = false;
-    let winner = null;
     // Prüfe, ob Spieler gestorben sind
     Object.entries(connectedPlayers).forEach(([socketId, player]) => {
         if (player.health <= 0 && player.isAlive) {
-            player.isAlive = false;
-            io.to(socketId).emit("playerDied");
+            // Markiere Spieler als nicht mehr am Leben
+            connectedPlayers[socketId].isAlive = false;
+            // Informiere alle Clients über den Tod des Spielers
+            io.emit("playerDied", { socketId, username: player.username });
         }
     });
-    // Prüfe, ob nur noch ein Spieler am Leben ist
+    // Prüfe, ob nur noch ein Spieler am Leben ist (Spielende)
     const alivePlayers = Object.values(connectedPlayers).filter((player) => player.isAlive);
-    if (alivePlayers.length === 1) {
-        gameOver = true;
-        winner = alivePlayers[0];
-        // Sende Game-Over-Event an alle Spieler
+    if (alivePlayers.length === 1 && alivePlayers.length > 0) {
+        // Spiel ist vorbei, ein Spieler hat gewonnen
+        const winner = alivePlayers[0];
+        // Informiere alle Clients über das Spielende
         io.emit("gameOver", winner);
         // Navigiere alle Spieler zur Game-Over-Seite
         io.emit("navigateToGameOver");
+        // Setze Truhen zurück, damit sie im nächsten Spiel wieder verfügbar sind
+        chests.forEach((chest) => {
+            chest.opened = false;
+        });
+        // Informiere alle Clients über die zurückgesetzten Truhen
+        io.emit("chestsUpdate", chests);
     }
     // Sende aktualisierte Spieler-Informationen an alle Clients
     io.emit("playersUpdate", connectedPlayers);
