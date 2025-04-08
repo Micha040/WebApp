@@ -266,8 +266,22 @@ const GameView: React.FC = () => {
       if (selectedGroundItem) {
         const newInventory = [...inventory];
         
-        // Wenn der Slot bereits belegt ist, das vorhandene Item droppen
-        if (newInventory[selectedSlot].item !== null) {
+        // Suche nach einem freien Slot
+        const freeSlotIndex = newInventory.findIndex(slot => slot.item === null);
+        
+        if (freeSlotIndex !== -1) {
+          // Wenn ein freier Slot gefunden wurde, lege das Item dort ab
+          newInventory[freeSlotIndex] = { item: selectedGroundItem.item, quantity: 1 };
+          setInventory(newInventory);
+          
+          // Entferne das Item vom Boden für diesen Spieler
+          setGroundItems(prev => prev.filter(item => item !== selectedGroundItem));
+          setSelectedGroundItem(null);
+          
+          // Informiere den Server, dass das Item aufgesammelt wurde
+          socket.emit("itemPickedUp", selectedGroundItem.item.id);
+        } else {
+          // Wenn kein freier Slot gefunden wurde, droppe das vorhandene Item
           const droppedItem = newInventory[selectedSlot].item;
           if (droppedItem) {
             // Sende das gedroppte Item an den Server, damit es für alle Spieler sichtbar ist
@@ -277,18 +291,18 @@ const GameView: React.FC = () => {
               y: Object.values(players).find(p => p.username === username)?.y || 0
             });
           }
+          
+          // Neues Item in den Slot legen
+          newInventory[selectedSlot] = { item: selectedGroundItem.item, quantity: 1 };
+          setInventory(newInventory);
+          
+          // Entferne das Item vom Boden für diesen Spieler
+          setGroundItems(prev => prev.filter(item => item !== selectedGroundItem));
+          setSelectedGroundItem(null);
+          
+          // Informiere den Server, dass das Item aufgesammelt wurde
+          socket.emit("itemPickedUp", selectedGroundItem.item.id);
         }
-        
-        // Neues Item in den Slot legen
-        newInventory[selectedSlot] = { item: selectedGroundItem.item, quantity: 1 };
-        setInventory(newInventory);
-        
-        // Entferne das Item vom Boden für diesen Spieler
-        setGroundItems(prev => prev.filter(item => item !== selectedGroundItem));
-        setSelectedGroundItem(null);
-        
-        // Informiere den Server, dass das Item aufgesammelt wurde
-        socket.emit("itemPickedUp", selectedGroundItem.item.id);
       }
     };
 
