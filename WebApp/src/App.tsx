@@ -131,7 +131,7 @@ function App() {
         element={
           <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#121212', color: '#fff' }}>
             <div style={{ flex: 1, padding: '2rem', maxWidth: '400px', backgroundColor: '#1e1e1e' }}>
-              <h1>👨‍💻 Lobby-System</h1>
+              <h1>👨Lobby-System</h1>
 
               <button onClick={() => setShowModal(true)}>➕ Lobby erstellen</button>
 
@@ -139,7 +139,7 @@ function App() {
             </div>
 
             <div style={{ flex: 2, padding: '2rem' }}>
-              <h2>🧾 Offene Lobbys</h2>
+              <h2>Offene Lobbys</h2>
               <LobbyList lobbys={lobbys} onJoin={handleJoinLobby} />
             </div>
 
@@ -176,7 +176,7 @@ function App() {
                     />
                   )}
                  
-                  <button onClick={handleCreateLobby}>✅ Lobby erstellen</button>
+                  <button onClick={handleCreateLobby}>Lobby erstellen</button>
                   
                 </div>
               </Modal>

@@ -175,7 +175,7 @@ export default function LobbyView({ username }: { username: string }) {
   
   
 
-  // 🔴 Nachrichten-Indikator: hört auf neue Nachrichten, auch wenn Chat geschlossen ist
+  // Nachrichten-Indikator: hört auf neue Nachrichten, auch wenn Chat geschlossen ist
   useEffect(() => {
     if (!id) return;
 
@@ -191,7 +191,7 @@ export default function LobbyView({ username }: { username: string }) {
         },
         () => {
           if (!showChat) {
-            console.log("🔴 Neue Nachricht empfangen (Chat geschlossen)");
+            console.log("Neue Nachricht empfangen (Chat geschlossen)");
             setHasNewMessages(true);
           }
         }
@@ -209,8 +209,8 @@ export default function LobbyView({ username }: { username: string }) {
     const channel = supabase
       .channel(`lobby-${id}`)
       .on('broadcast', { event: 'game-started' }, (payload) => {
-        console.log("🎮 Spielstart-Broadcast empfangen:", payload.payload);
-        navigate(`/game/${id}`); // 🔁 Route zum Spiel
+        console.log("Spielstart-Broadcast empfangen:", payload.payload);
+        navigate(`/game/${id}`); // Route zum Spiel
       })
       .subscribe();
   
@@ -234,7 +234,7 @@ export default function LobbyView({ username }: { username: string }) {
         payload: { username: playerUsername },
       });
   
-      // ✅ Spielerliste neu laden, damit der Host die Änderung sofort sieht
+      // Spielerliste neu laden, damit der Host die Änderung sofort sieht
       fetchPlayers();
     } else {
       console.error("Kick fehlgeschlagen");
@@ -260,10 +260,10 @@ export default function LobbyView({ username }: { username: string }) {
   if (!lobby) return <p style={{ padding: '2rem', color: '#fff' }}>Lade Lobby...</p>;
 
   const handleStartGame = async () => {
-  console.log("🟢 handleStartGame wurde aufgerufen!");
+  console.log("handleStartGame wurde aufgerufen!");
 
   if (!id || !username || !currentSkin) {
-    console.log("⚠️ Abbruch wegen fehlender Daten:", { id, username, currentSkin });
+    console.log("Abbruch wegen fehlender Daten:", { id, username, currentSkin });
     return;
   }
 
@@ -279,9 +279,9 @@ export default function LobbyView({ username }: { username: string }) {
     });
 
     const data = await res.json();
-    console.log("✅ Antwort vom Server:", data);
+    console.log("Antwort vom Server:", data);
   } catch (err) {
-    console.error("❌ Fehler beim Starten des Spiels:", err);
+    console.error("Fehler beim Starten des Spiels:", err);
   }
 };
 
@@ -331,8 +331,8 @@ export default function LobbyView({ username }: { username: string }) {
           >
             <thead style={{ position: 'sticky', top: 0, backgroundColor: '#222' }}>
               <tr>
-                <th style={thStyle}>🧑 Spielername</th>
-                <th style={thStyle}>🎖️ Rolle</th>
+                <th style={thStyle}>Spielername</th>
+                <th style={thStyle}>Rolle</th>
                 {isHost && <th style={thStyle}>Aktion</th>}
               </tr>
             </thead>
@@ -371,7 +371,7 @@ export default function LobbyView({ username }: { username: string }) {
                             fontSize: '0.8rem',
                           }}
                         >
-                          🚫 Kick
+                          Kick
                         </button>
                       )}
                     </td>
@@ -391,7 +391,7 @@ export default function LobbyView({ username }: { username: string }) {
               maxWidth: '100%',
             }}
           >
-            <h2>⚙️ Einstellungen</h2>
+            <h2>Einstellungen</h2>
   
             <div
               style={{
@@ -404,7 +404,7 @@ export default function LobbyView({ username }: { username: string }) {
               }}
             >
               <label>
-                ⏱️ Rundenzeit (Sekunden):
+                Rundenzeit (Sekunden):
                 <input
                   type="number"
                   value={settings.roundTime}
@@ -425,7 +425,7 @@ export default function LobbyView({ username }: { username: string }) {
               </label>
   
               <label>
-                👥 Max. Spieler:
+                Max. Spieler:
                 <input
                   type="number"
                   value={settings.maxPlayers}
@@ -446,7 +446,7 @@ export default function LobbyView({ username }: { username: string }) {
               </label>
   
               <label>
-                🎮 Schwierigkeit:
+                Schwierigkeit:
                 <select
                   value={settings.difficulty}
                   onChange={(e) => handleSettingChange('difficulty', e.target.value)}
@@ -471,7 +471,7 @@ export default function LobbyView({ username }: { username: string }) {
   
               <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  🧠 Tipps erlauben:
+                  Tipps erlauben:
                 </span>
                 <div
                   onClick={() => isHost && handleSettingChange('allowHints', !settings.allowHints)}
@@ -516,7 +516,7 @@ export default function LobbyView({ username }: { username: string }) {
               boxShadow: '0 0 10px rgba(0,0,0,0.3)',
             }}
           >
-            <h2>🧍 Skin-Editor</h2>
+            <h2>Skin-Editor</h2>
             <SkinEditor
               lobbyId={id!}
               username={username}
@@ -528,7 +528,7 @@ export default function LobbyView({ username }: { username: string }) {
         </div>
       </div>
   
-      {/* ✅ Chat-Modal */}
+      {/* Chat-Modal */}
       {showChat && id && (
         <ChatModal
           lobbyId={id}
@@ -537,12 +537,12 @@ export default function LobbyView({ username }: { username: string }) {
         />
       )}
   
-      {/* ✅ Toast */}
+      {/* Toast */}
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
       )}
   
-      {/* ✅ Sticky Footer mit Chat-Indikator */}
+      {/* Sticky Footer mit Chat-Indikator */}
       <div
         style={{
           position: 'fixed',
@@ -558,7 +558,7 @@ export default function LobbyView({ username }: { username: string }) {
           zIndex: 1000,
         }}
       >
-        <span style={{ color: '#aaa' }}>🎮 Du bist in: {lobby.name}</span>
+        <span style={{ color: '#aaa' }}>Du bist in: {lobby.name}</span>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button
             onClick={() => {
@@ -575,7 +575,7 @@ export default function LobbyView({ username }: { username: string }) {
               position: 'relative',
             }}
           >
-            💬 Chat öffnen
+            Chat öffnen
             {hasNewMessages && (
               <span
                 style={{
@@ -603,7 +603,7 @@ export default function LobbyView({ username }: { username: string }) {
                 opacity: isHost ? 1 : 0.6,
               }}
             >
-              🎮 Spiel starten
+              Spiel starten
           </button>
 
           <button
@@ -618,7 +618,7 @@ export default function LobbyView({ username }: { username: string }) {
               marginRight: '3rem',
             }}
           >
-            🔙 Zurück zur Übersicht
+            Zurück zur Übersicht
           </button>
         </div>
       </div>

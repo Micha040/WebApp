@@ -16,10 +16,10 @@
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid #444' }}>
-              <th style={thStyle}>🏷️ Name</th>
-              <th style={thStyle}>👤 Host</th>
-              <th style={thStyle}>🕒 Erstellt</th>
-              <th style={thStyle}>🎮 Aktion</th>
+              <th style={thStyle}>Name</th>
+              <th style={thStyle}>Host</th>
+              <th style={thStyle}>Erstellt</th>
+              <th style={thStyle}>Aktion</th>
             </tr>
           </thead>
           <tbody>
@@ -56,7 +56,7 @@
     );
   }
   
-  // 🔧 einfache Styles
+  // einfache Styles
   const thStyle = {
     textAlign: 'left' as const,
     padding: '0.75rem 1rem',

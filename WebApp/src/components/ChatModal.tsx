@@ -40,7 +40,7 @@ export default function ChatModal({ lobbyId, username, onClose }: ChatModalProps
     });
 
     setNewMessage("");
-    fetchMessages(); // ⬅️ Manuell neu laden nach dem Senden
+    fetchMessages(); // ⬅Manuell neu laden nach dem Senden
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

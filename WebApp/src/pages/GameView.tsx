@@ -278,7 +278,7 @@ const GameView: React.FC = () => {
           .filter((b) => b.x > 0 && b.x < window.innerWidth && b.y > 0 && b.y < window.innerHeight)
       );
 
-      // ✅ Chest-Nähe prüfen
+      // Chest-Nähe prüfen
       const currentPlayer = Object.values(players).find(p => p.username === username);
       if (currentPlayer) {
         const near = chests.find(

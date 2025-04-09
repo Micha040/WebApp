@@ -34,7 +34,7 @@ export function Modal({ title, children, onClose }: ModalProps) {
           position: 'relative',
         }}
       >
-        {/* ❌ Schließen-Button */}
+        {/* Schließen-Button */}
         <button
           onClick={onClose}
           style={{
