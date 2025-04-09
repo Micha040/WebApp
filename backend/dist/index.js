@@ -129,7 +129,7 @@ const chests = spawnPoints.map((point, index) => ({
     items: [],
 }));
 console.log("Initialisierte Truhen:", chests);
-// ✅ Lobby erstellen
+// Lobby erstellen
 app.post("/lobby", async (req, res) => {
     const { username, name, password } = req.body;
     if (!username ||
@@ -146,7 +146,7 @@ app.post("/lobby", async (req, res) => {
         .from("lobbys")
         .insert([{ id: lobbyId, host: username, name, password }]);
     if (lobbyError) {
-        console.error("❌ Supabase-Fehler (Lobby erstellen):", lobbyError);
+        console.error("Supabase-Fehler (Lobby erstellen):", lobbyError);
         return res.status(500).json({ error: lobbyError.message });
     }
     // 2. Host als Spieler hinzufügen UND direkt ID zurückbekommen
@@ -156,7 +156,7 @@ app.post("/lobby", async (req, res) => {
         .select("id")
         .single();
     if (playerInsertError) {
-        console.error("❌ Supabase-Fehler (Host als Spieler hinzufügen):", playerInsertError);
+        console.error("Supabase-Fehler (Host als Spieler hinzufügen):", playerInsertError);
         return res.status(500).json({ error: playerInsertError.message });
     }
     // 3. Leeren Skin für Host anlegen
@@ -171,12 +171,12 @@ app.post("/lobby", async (req, res) => {
         },
     ]);
     if (skinError) {
-        console.error("❌ Supabase-Fehler (Skin erstellen):", skinError);
+        console.error("Supabase-Fehler (Skin erstellen):", skinError);
         return res.status(500).json({ error: skinError.message });
     }
     res.json({ lobbyId });
 });
-// ✅ Lobby beitreten
+// Lobby beitreten
 app.post("/lobby/join", async (req, res) => {
     const { username, lobbyId, password } = req.body;
     // 1. Hole die Lobby mit Passwort + max_players
@@ -220,7 +220,7 @@ app.post("/lobby/join", async (req, res) => {
         .eq("player_id", playerId)
         .maybeSingle();
     if (skinCheckError) {
-        console.error("❌ Fehler beim Skin-Check:", skinCheckError.message);
+        console.error("Fehler beim Skin-Check:", skinCheckError.message);
         // Fehler loggen, aber Spieler trotzdem reinlassen
     }
     // 6. Wenn kein Skin vorhanden, neuen Standard-Skin einfügen
@@ -236,14 +236,14 @@ app.post("/lobby/join", async (req, res) => {
             },
         ]);
         if (skinInsertError) {
-            console.error("❌ Fehler beim Erstellen des Skins:", skinInsertError.message);
+            console.error("Fehler beim Erstellen des Skins:", skinInsertError.message);
             // ebenfalls nicht blockieren
         }
     }
     await updateLobbyActivity(lobbyId);
     res.status(200).json({ message: "Beigetreten" });
 });
-// ✅ Spieler aus Lobby entfernen
+// Spieler aus Lobby entfernen
 app.delete("/lobby/:id/leave/:username", async (req, res) => {
     const { id, username } = req.params;
     const { error } = await supabase
@@ -279,7 +279,7 @@ app.delete("/lobby/:id/leave/:username", async (req, res) => {
     }
     res.json({ success: true });
 });
-// ✅ Alle offenen Lobbys holen
+// Alle offenen Lobbys holen
 app.get("/lobbys", async (_req, res) => {
     const { data, error } = await supabase
         .from("lobbys")
@@ -289,7 +289,7 @@ app.get("/lobbys", async (_req, res) => {
         return res.status(500).json({ error: error.message });
     res.json(data);
 });
-// ✅ Einzelne Lobby holen
+// Einzelne Lobby holen
 app.get("/lobbys/:id", async (req, res) => {
     const { id } = req.params;
     const { data, error } = await supabase
@@ -301,7 +301,7 @@ app.get("/lobbys/:id", async (req, res) => {
         return res.status(404).json({ error: "Lobby nicht gefunden" });
     res.json(data);
 });
-// ✅ Spieler in Lobby
+// Spieler in Lobby
 app.get("/lobbys/:id/players", async (req, res) => {
     const { id } = req.params;
     const { data, error } = await supabase
@@ -312,7 +312,7 @@ app.get("/lobbys/:id/players", async (req, res) => {
         return res.status(500).json({ error: "Fehler beim Abrufen der Spieler" });
     res.json(data);
 });
-// ✅ Nachrichten holen
+// Nachrichten holen
 app.get("/messages/:lobbyId", async (req, res) => {
     const { lobbyId } = req.params;
     const { data, error } = await supabase
@@ -324,7 +324,7 @@ app.get("/messages/:lobbyId", async (req, res) => {
         return res.status(500).json({ error: "Fehler beim Laden der Nachrichten" });
     res.json(data);
 });
-// ✅ Nachricht schreiben
+// Nachricht schreiben
 app.post("/messages", async (req, res) => {
     const { username, lobbyId, content } = req.body;
     if (!username || !lobbyId || !content) {
@@ -341,8 +341,7 @@ app.post("/messages", async (req, res) => {
     await updateLobbyActivity(lobbyId);
     res.json({ success: true });
 });
-//kjhadkjh
-// ✅ Zeichnungen empfangen
+// Zeichnungen empfangen
 app.post("/drawings", async (req, res) => {
     const { lobbyId, x, y, color, thickness } = req.body;
     if (!lobbyId || x === undefined || y === undefined) {
@@ -359,7 +358,7 @@ app.post("/drawings", async (req, res) => {
     await updateLobbyActivity(lobbyId);
     res.json({ success: true });
 });
-// ✅ Zeichnungen abrufen
+// Zeichnungen abrufen
 app.get("/drawings/:lobbyId", async (req, res) => {
     const { lobbyId } = req.params;
     const { data, error } = await supabase
@@ -393,7 +392,7 @@ app.delete("/lobby/:lobbyId/kick/:username", async (req, res) => {
     if (error) {
         return res.status(500).json(error);
     }
-    // 🔴 Realtime-Broadcast an alle Clients in der Lobby
+    // Realtime-Broadcast an alle Clients in der Lobby
     await supabase.channel(`lobby-${lobbyId}`).send({
         type: "broadcast",
         event: "player-kicked",
@@ -417,8 +416,8 @@ app.get("/lobby/:lobbyId/host", async (req, res) => {
 });
 app.post("/lobby/start", async (req, res) => {
     const { lobbyId, username, skin } = req.body;
-    // console.log("📥 Empfangen:", { lobbyId, username });
-    // console.log("🔧 Skin-Daten empfangen:", JSON.stringify(skin, null, 2));
+    // console.log("Empfangen:", { lobbyId, username });
+    // console.log("Skin-Daten empfangen:", JSON.stringify(skin, null, 2));
     const { data: player, error: playerError } = await supabase
         .from("players")
         .select("id")
@@ -426,7 +425,7 @@ app.post("/lobby/start", async (req, res) => {
         .eq("lobby_id", lobbyId)
         .single();
     if (playerError || !player) {
-        console.error("❌ Spieler nicht gefunden:", playerError?.message);
+        console.error("Spieler nicht gefunden:", playerError?.message);
         return res.status(404).json({ error: "Spieler nicht gefunden" });
     }
     const { ball, eyes, mouth, top } = skin;
@@ -440,12 +439,12 @@ app.post("/lobby/start", async (req, res) => {
     })
         .eq("player_id", player.id);
     if (updateError) {
-        console.error("❌ Fehler beim Skin-Update:", updateError.message);
+        console.error("Fehler beim Skin-Update:", updateError.message);
         return res
             .status(500)
             .json({ error: "Skin konnte nicht aktualisiert werden" });
     }
-    // ✅ NEU: Spiel in Tabelle eintragen
+    // Spiel in Tabelle eintragen
     const { error: gameError } = await supabase.from("games").insert([
         {
             lobby_id: lobbyId,
@@ -454,12 +453,12 @@ app.post("/lobby/start", async (req, res) => {
         },
     ]);
     if (gameError) {
-        console.error("❌ Fehler beim Erstellen des Spiels:", gameError.message);
+        console.error("Fehler beim Erstellen des Spiels:", gameError.message);
         return res
             .status(500)
             .json({ error: "Spiel konnte nicht gestartet werden" });
     }
-    // console.log("✅ Spiel erstellt + Skin gespeichert!");
+    // console.log("Spiel erstellt + Skin gespeichert!");
     await supabase.channel(`lobby-${lobbyId}`).send({
         type: "broadcast",
         event: "game-started",
@@ -467,7 +466,7 @@ app.post("/lobby/start", async (req, res) => {
     });
     // Sende die Kisten an alle verbundenen Clients
     io.emit("chestsUpdate", chests);
-    console.log("🧰 Kisten beim Spielstart gesendet:", chests);
+    console.log("Kisten beim Spielstart gesendet:", chests);
     res
         .status(200)
         .json({ message: "Spiel wurde gestartet und Skin gespeichert" });
@@ -493,20 +492,20 @@ const io = new socket_io_1.Server(server, {
         credentials: true,
     },
 });
-// ✅ Spielerliste nach socket.id
+// Spielerliste nach socket.id
 const connectedPlayers = {};
 const bullets = [];
 io.on("connection", (socket) => {
-    // console.log("🟢 Neue Socket-Verbindung:", socket.id); // ← ganz oben
-    // console.log(`🟢 Spieler verbunden: ${socket.id}`);
+    // console.log("Neue Socket-Verbindung:", socket.id); // ← ganz oben
+    // console.log(`Spieler verbunden: ${socket.id}`);
     // Sende die Kisten sofort bei der Verbindung
     socket.emit("chestsUpdate", chests);
-    console.log("🧰 Kisten bei Verbindung gesendet:", chests);
+    console.log("Kisten bei Verbindung gesendet:", chests);
     socket.onAny((event, ...args) => {
-        // console.log(`📡 [SOCKET EVENT] ${event}`, args);
+        // console.log(`[SOCKET EVENT] ${event}`, args);
     });
     socket.on("join", async (data) => {
-        // console.log("📡 Spieler gejoint (empfangen):", data.username);
+        // console.log("Spieler gejoint (empfangen):", data.username);
         // Hole Skin-Informationen aus der Datenbank
         const { data: playerData, error: playerError } = await supabase
             .from("players")
@@ -514,7 +513,7 @@ io.on("connection", (socket) => {
             .eq("username", data.username)
             .single();
         if (playerError) {
-            console.error("❌ Fehler beim Laden des Spielers:", playerError);
+            console.error("Fehler beim Laden des Spielers:", playerError);
             return;
         }
         const { data: skinData, error: skinError } = await supabase
@@ -523,7 +522,7 @@ io.on("connection", (socket) => {
             .eq("player_id", playerData.id)
             .single();
         if (skinError) {
-            console.error("❌ Fehler beim Laden des Skins:", skinError);
+            console.error("Fehler beim Laden des Skins:", skinError);
             return;
         }
         // Wähle einen zufälligen Spawn-Punkt
@@ -611,19 +610,19 @@ io.on("connection", (socket) => {
         switch (data.type) {
             case "heal":
                 player.health = Math.min(100, player.health + data.value);
-                console.log(`💚 ${player.username} hat sich geheilt! +${data.value} HP (neu: ${player.health})`);
+                console.log(`${player.username} hat sich geheilt! +${data.value} HP (neu: ${player.health})`);
                 break;
             case "shield":
                 player.shield = data.value;
-                console.log(`🛡️ ${player.username} hat einen Schild aktiviert! (${data.value} Schaden blockiert)`);
+                console.log(`${player.username} hat einen Schild aktiviert! (${data.value} Schaden blockiert)`);
                 break;
             case "speed":
                 player.speedBoost = data.value;
-                console.log(`⚡ ${player.username} hat einen Geschwindigkeitsboost aktiviert! (+${data.value}% Geschwindigkeit)`);
+                console.log(`${player.username} hat einen Geschwindigkeitsboost aktiviert! (+${data.value}% Geschwindigkeit)`);
                 break;
             case "damage":
                 player.damageBoost = data.value;
-                console.log(`�� ${player.username} hat einen Schadensboost aktiviert! (+${data.value}% Schaden)`);
+                console.log(`${player.username} hat einen Schadensboost aktiviert! (+${data.value}% Schaden)`);
                 break;
         }
         io.emit("playersUpdate", connectedPlayers);
@@ -661,7 +660,7 @@ io.on("connection", (socket) => {
                 // Sende die Items sofort
                 io.emit("itemsSpawned", itemsWithPositions);
             }
-            console.log(`🧰 ${player.username} hat Truhe ${chest.id} geöffnet und ${chest.items.length} Items gefunden`);
+            console.log(`${player.username} hat Truhe ${chest.id} geöffnet und ${chest.items.length} Items gefunden`);
         }
     });
     socket.on("itemPickedUp", (itemId) => {
@@ -758,7 +757,7 @@ setInterval(() => {
                 player.health = Math.max(player.health - damage, 0);
                 bullets.splice(i, 1);
                 bulletsUpdated = true;
-                console.log(`💥 ${player.username} wurde getroffen! ➖ ${damage.toFixed(1)} HP (neu: ${player.health})`);
+                console.log(`${player.username} wurde getroffen! ➖ ${damage.toFixed(1)} HP (neu: ${player.health})`);
                 io.emit("playersUpdate", connectedPlayers);
                 break;
             }
@@ -840,7 +839,7 @@ function calculateItemPosition(chestX, chestY) {
 }
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-    console.log(`✅ Server + WebSocket läuft auf http://localhost:${PORT}`);
+    console.log(`Server + WebSocket läuft auf http://localhost:${PORT}`);
 });
 // Funktion zum Überprüfen und Löschen inaktiver Lobbys
 async function cleanupInactiveLobbies() {
