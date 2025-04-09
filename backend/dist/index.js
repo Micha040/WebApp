@@ -685,19 +685,32 @@ setInterval(() => {
     });
     // Prüfe, ob nur noch ein Spieler am Leben ist (Spielende)
     const alivePlayers = Object.values(connectedPlayers).filter((player) => player.isAlive);
-    if (alivePlayers.length === 1 && alivePlayers.length > 0) {
+    if (alivePlayers.length === 1 && Object.values(connectedPlayers).length > 1) {
         // Spiel ist vorbei, ein Spieler hat gewonnen
         const winner = alivePlayers[0];
-        // Informiere alle Clients über das Spielende
-        io.emit("gameOver", winner);
+        // Erstelle eine Kopie des finalen Spielerstatus für den Game-Over-Screen
+        const finalGameState = Object.entries(connectedPlayers).map(([socketId, player]) => ({
+            username: player.username,
+            isAlive: player.isAlive,
+        }));
+        // Informiere alle Clients über das Spielende mit dem finalen Status
+        io.emit("gameOver", { winner, finalGameState });
         // Navigiere alle Spieler zur Game-Over-Seite
-        io.emit("navigateToGameOver");
+        io.emit("navigateToGameOver", { finalGameState });
         // Setze Truhen zurück, damit sie im nächsten Spiel wieder verfügbar sind
         chests.forEach((chest) => {
             chest.opened = false;
         });
         // Informiere alle Clients über die zurückgesetzten Truhen
         io.emit("chestsUpdate", chests);
+        // Setze alle Spieler-Status zurück
+        Object.values(connectedPlayers).forEach((player) => {
+            player.health = 100;
+            player.isAlive = true;
+            player.shield = undefined;
+            player.speedBoost = undefined;
+            player.damageBoost = undefined;
+        });
     }
     // Sende aktualisierte Spieler-Informationen an alle Clients
     io.emit("playersUpdate", connectedPlayers);
