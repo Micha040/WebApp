@@ -24,119 +24,307 @@ type FinalGameState = {
   username: string;
   isAlive: boolean;
 }[];
-
-type GameOverData = {
-  winner: Player | null;
-  finalGameState: FinalGameState;
-  isGameFinished: boolean;
-};
-
+//test
 const GameOverView: React.FC = () => {
   const navigate = useNavigate();
-  const [finalGameState, setFinalGameState] = useState<FinalGameState>([]);
   const [winner, setWinner] = useState<Player | null>(null);
-  const [isGameFinished, setIsGameFinished] = useState<boolean>(false);
+  const [finalGameState, setFinalGameState] = useState<FinalGameState>([]);
+  const [showConfetti, setShowConfetti] = useState<boolean>(false);
 
   useEffect(() => {
-    socket.on('gameOver', (data: GameOverData) => {
-      setFinalGameState(data.finalGameState);
+    // Höre auf Game-Over-Event
+    socket.on('gameOver', (data: { winner: Player, finalGameState: FinalGameState }) => {
       setWinner(data.winner);
-      setIsGameFinished(data.isGameFinished);
+      setFinalGameState(data.finalGameState);
+      setShowConfetti(true);
+    });
+
+    // Höre auf navigateToGameOver-Event
+    socket.on('navigateToGameOver', (data: { finalGameState: FinalGameState }) => {
+      setFinalGameState(data.finalGameState);
     });
 
     return () => {
       socket.off('gameOver');
+      socket.off('navigateToGameOver');
     };
-  }, []);
+  }, [navigate]);
+
+  // Funktion zum Zurückkehren zur Startseite
+  const handleReturnToHome = () => {
+    navigate('/');
+  };
+
+  // Konfetti-Effekt
+  useEffect(() => {
+    if (showConfetti) {
+      // Hier könnte ein Konfetti-Effekt implementiert werden
+      // z.B. mit einer Bibliothek wie react-confetti
+    }
+  }, [showConfetti]);
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#1a1a1a',
-      color: 'white',
-      padding: '20px',
-    }}>
-      <div style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        padding: '2rem',
-        borderRadius: '10px',
-        maxWidth: '600px',
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
         width: '100%',
-      }}>
-        <h1 style={{ 
-          textAlign: 'center', 
-          marginBottom: '2rem',
-          color: winner ? '#4CAF50' : '#f44336'
-        }}>
-          {isGameFinished 
-            ? winner 
-              ? `${winner.username} hat gewonnen!` 
-              : 'Spiel beendet'
-            : 'Du bist gestorben!'}
+        height: '100%',
+        backgroundColor: '#111',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        color: 'white',
+        fontFamily: 'Arial, sans-serif',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Hintergrund-Animation */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'radial-gradient(circle, #222 0%, #111 100%)',
+          zIndex: -1,
+        }}
+      >
+        {/* Animierte Partikel */}
+        {Array.from({ length: 50 }).map((_, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              width: Math.random() * 5 + 2 + 'px',
+              height: Math.random() * 5 + 2 + 'px',
+              backgroundColor: `rgba(${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 255}, ${Math.random() * 0.5 + 0.5})`,
+              borderRadius: '50%',
+              top: Math.random() * 100 + '%',
+              left: Math.random() * 100 + '%',
+              animation: `float ${Math.random() * 10 + 10}s linear infinite`,
+              animationDelay: `${Math.random() * 5}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Hauptinhalt */}
+      <div
+        style={{
+          textAlign: 'center',
+          padding: '40px',
+          borderRadius: '20px',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          boxShadow: '0 0 30px rgba(255, 215, 0, 0.5)',
+          maxWidth: '800px',
+          width: '90%',
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        <h1
+          style={{
+            fontSize: '3rem',
+            marginBottom: '20px',
+            color: '#ffd700',
+            textShadow: '0 0 10px rgba(255, 215, 0, 0.7)',
+          }}
+        >
+          Spiel beendet!
         </h1>
 
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '10px',
-          maxHeight: '200px',
-          overflowY: 'auto',
-        }}>
-          {finalGameState.map((player, index) => (
+        {winner ? (
+          <>
             <div
-              key={index}
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '10px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                marginBottom: '0.5rem',
-                borderRadius: '5px',
+                margin: '30px auto',
+                width: '150px',
+                height: '150px',
+                position: 'relative',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '5px solid #ffd700',
+                boxShadow: '0 0 20px rgba(255, 215, 0, 0.7)',
               }}
             >
-              <span>{player.username}</span>
-              <span style={{
-                color: player.isAlive ? '#4CAF50' : '#f44336',
-                fontWeight: 'bold'
-              }}>
-                {player.isAlive ? 'Überlebt' : 'Gestorben'}
-              </span>
+              {/* Gewinner-Skin */}
+              <div
+                style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '100%',
+                  imageRendering: 'pixelated',
+                }}
+              >
+                <img
+                  src={`/skins/Balls/${winner.skin.ball}.png`}
+                  alt="ball"
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+                />
+                <img
+                  src={`/skins/Eyes/${winner.skin.eyes}.png`}
+                  alt="eyes"
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+                />
+                <img
+                  src={`/skins/Mouths/${winner.skin.mouth}.png`}
+                  alt="mouth"
+                  style={{ 
+                    position: 'absolute', 
+                    top: '45%', 
+                    left: '50%', 
+                    width: '60%',
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                />
+                {winner.skin.top !== 'none' && (
+                  <img
+                    src={`/skins/Tops/${winner.skin.top}.png`}
+                    alt="top"
+                    style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
+                  />
+                )}
+              </div>
             </div>
-          ))}
-        </div>
 
-        {!isGameFinished && (
-          <p style={{ 
-            textAlign: 'center', 
-            marginTop: '2rem',
-            color: '#aaa'
-          }}>
+            <h2
+              style={{
+                fontSize: '2.5rem',
+                marginBottom: '20px',
+                color: '#ffd700',
+                textShadow: '0 0 10px rgba(255, 215, 0, 0.7)',
+              }}
+            >
+              {winner.username} hat gewonnen!
+            </h2>
+
+            <p
+              style={{
+                fontSize: '1.2rem',
+                marginBottom: '30px',
+                color: '#ccc',
+              }}
+            >
+              Herzlichen Glückwunsch! Du hast alle anderen Spieler besiegt und das Spiel gewonnen.
+            </p>
+          </>
+        ) : (
+          <p
+            style={{
+              fontSize: '1.5rem',
+              marginBottom: '30px',
+              color: '#ccc',
+            }}
+          >
             Warte auf das Ende des Spiels...
           </p>
         )}
 
-        <button
-          onClick={() => navigate('/')}
+        <div
           style={{
-            marginTop: '2rem',
-            padding: '10px 20px',
+            marginTop: '30px',
+            padding: '20px',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            borderRadius: '10px',
+          }}
+        >
+          <h3
+            style={{
+              fontSize: '1.5rem',
+              marginBottom: '15px',
+              color: '#ffd700',
+            }}
+          >
+            Spieler-Statistiken
+          </h3>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+            }}
+          >
+            {finalGameState.map((player, index) => (
+              <div
+                key={index}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '10px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  marginBottom: '0.5rem',
+                  borderRadius: '5px',
+                }}
+              >
+                <span>{player.username}</span>
+                <span style={{
+                  color: player.isAlive ? '#4CAF50' : '#f44336',
+                  fontWeight: 'bold'
+                }}>
+                  {player.isAlive ? 'Überlebt' : 'Gestorben'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Button zum Zurückkehren zur Startseite */}
+        <button
+          onClick={handleReturnToHome}
+          style={{
+            marginTop: '30px',
+            padding: '12px 24px',
             backgroundColor: '#4a9eff',
             color: 'white',
             border: 'none',
-            borderRadius: '5px',
+            borderRadius: '8px',
+            fontSize: '1.2rem',
             cursor: 'pointer',
-            width: '100%',
-            fontSize: '1rem',
+            transition: 'background-color 0.3s, transform 0.2s',
+            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = '#3a8eef';
+            e.currentTarget.style.transform = 'translateY(-2px)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = '#4a9eff';
+            e.currentTarget.style.transform = 'translateY(0)';
           }}
         >
           Zurück zur Startseite
         </button>
       </div>
+
+      {/* CSS für Animationen */}
+      <style>
+        {`
+          @keyframes float {
+            0% {
+              transform: translateY(0) translateX(0);
+            }
+            25% {
+              transform: translateY(-20px) translateX(10px);
+            }
+            50% {
+              transform: translateY(0) translateX(20px);
+            }
+            75% {
+              transform: translateY(20px) translateX(10px);
+            }
+            100% {
+              transform: translateY(0) translateX(0);
+            }
+          }
+        `}
+      </style>
     </div>
   );
 };
