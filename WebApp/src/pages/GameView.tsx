@@ -489,9 +489,13 @@ const GameView: React.FC = () => {
 
   useEffect(() => {
     socket.on('chestsUpdate', (updatedChests: Chest[]) => {
+      console.log("Neue Truhen empfangen:", updatedChests);
       setChests(updatedChests);
     });
-  
+
+    // Fordere Truhen beim Laden an
+    socket.emit('requestChests');
+
     return () => {
       socket.off('chestsUpdate');
     };
