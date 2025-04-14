@@ -679,20 +679,8 @@ setInterval(() => {
         if (player.health <= 0 && player.isAlive) {
             // Markiere Spieler als nicht mehr am Leben
             connectedPlayers[socketId].isAlive = false;
-            // Erstelle eine Kopie des aktuellen Spielerstatus für den Game-Over-Screen
-            const currentGameState = Object.entries(connectedPlayers).map(([socketId, player]) => ({
-                username: player.username,
-                isAlive: player.isAlive,
-            }));
-            // Informiere den gestorbenen Spieler über seinen Tod und den aktuellen Spielstatus
-            io.to(socketId).emit("gameOver", {
-                winner: null,
-                finalGameState: currentGameState,
-                isGameFinished: false,
-            });
-            io.to(socketId).emit("navigateToGameOver", {
-                finalGameState: currentGameState,
-            });
+            // Informiere alle Clients über den Tod des Spielers
+            io.emit("playerDied", { socketId, username: player.username });
         }
     });
     // Prüfe, ob nur noch ein Spieler am Leben ist (Spielende)
@@ -706,11 +694,8 @@ setInterval(() => {
             isAlive: player.isAlive,
         }));
         // Informiere alle Clients über das Spielende mit dem finalen Status
-        io.emit("gameOver", {
-            winner,
-            finalGameState,
-            isGameFinished: true,
-        });
+        io.emit("gameOver", { winner, finalGameState });
+        // Navigiere alle Spieler zur Game-Over-Seite
         io.emit("navigateToGameOver", {
             winner,
             finalGameState,
