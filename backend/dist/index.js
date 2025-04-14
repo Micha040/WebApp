@@ -21,14 +21,12 @@ const corsOptions = {
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 const supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
-// Lade die Map-Daten
 let mapData = null;
 try {
     const mapPath = path_1.default.join(__dirname, "../public/map.json");
     console.log("Versuche Map zu laden von:", mapPath);
     if (fs_1.default.existsSync(mapPath)) {
         const rawData = JSON.parse(fs_1.default.readFileSync(mapPath, "utf-8"));
-        // Stelle sicher, dass die Daten dem TiledMap-Format entsprechen
         mapData = {
             layers: rawData.layers.map((layer) => ({
                 name: layer.name,
@@ -48,7 +46,19 @@ try {
     else {
         console.error("Map-Datei nicht gefunden:", mapPath);
         mapData = {
-            layers: [],
+            layers: [
+                {
+                    name: "ChestSpawns",
+                    type: "objectgroup",
+                    objects: [
+                        { id: 1, x: 100, y: 100, width: 32, height: 32 },
+                        { id: 2, x: 200, y: 200, width: 32, height: 32 },
+                        { id: 3, x: 300, y: 300, width: 32, height: 32 },
+                    ],
+                    width: 30,
+                    height: 30,
+                },
+            ],
             tilewidth: 32,
             tileheight: 32,
             width: 30,
@@ -59,35 +69,42 @@ try {
 catch (error) {
     console.error("Fehler beim Laden der Map:", error);
     mapData = {
-        layers: [],
+        layers: [
+            {
+                name: "ChestSpawns",
+                type: "objectgroup",
+                objects: [
+                    { id: 1, x: 100, y: 100, width: 32, height: 32 },
+                    { id: 2, x: 200, y: 200, width: 32, height: 32 },
+                    { id: 3, x: 300, y: 300, width: 32, height: 32 },
+                ],
+                width: 30,
+                height: 30,
+            },
+        ],
         tilewidth: 32,
         tileheight: 32,
         width: 30,
         height: 30,
     };
 }
-// Hilfsfunktion zur Kollisionsprüfung
 function checkCollision(x, y) {
     if (!mapData)
         return false;
     const solidLayer = mapData.layers.find((layer) => layer.name === "Solid");
     if (!solidLayer || !solidLayer.data)
         return false;
-    // Konvertiere Weltkoordinaten in Tile-Koordinaten
     const tileX = Math.floor(x / mapData.tilewidth);
     const tileY = Math.floor(y / mapData.tileheight);
-    // Prüfe, ob die Position innerhalb der Map liegt
     if (tileX < 0 ||
         tileX >= solidLayer.width ||
         tileY < 0 ||
         tileY >= solidLayer.height) {
-        return true; // Kollision mit Map-Grenzen
+        return true;
     }
-    // Hole den Tile-Index an der Position
     const tileIndex = tileY * solidLayer.width + tileX;
-    return solidLayer.data[tileIndex] !== 0; // 0 bedeutet kein Tile
+    return solidLayer.data[tileIndex] !== 0;
 }
-// Funktion zum Extrahieren der Spawn-Punkte aus der Map
 function getChestSpawnPoints(mapData) {
     console.log("Verfügbare Layer:", mapData.layers.map((l) => l.name));
     const chestLayer = mapData.layers.find((layer) => layer.name === "ChestSpawns");
@@ -102,7 +119,6 @@ function getChestSpawnPoints(mapData) {
         y: obj.y,
     }));
 }
-// Funktion zum Extrahieren der Spieler-Spawn-Punkte aus der Map
 function getPlayerSpawnPoints(mapData) {
     const playerLayer = mapData.layers.find((layer) => layer.name === "PlayerSpawns");
     console.log("Gefundener PlayerSpawns Layer:", playerLayer);
@@ -116,12 +132,11 @@ function getPlayerSpawnPoints(mapData) {
         y: obj.y,
     }));
 }
-// Aktualisiere die Truhen basierend auf den Spawn-Punkten
 const spawnPoints = mapData ? getChestSpawnPoints(mapData) : [];
 const playerSpawnPoints = mapData ? getPlayerSpawnPoints(mapData) : [];
 console.log("Finale Spawn-Punkte:", spawnPoints);
 console.log("Finale Spieler-Spawn-Punkte:", playerSpawnPoints);
-const chests = spawnPoints.map((point, index) => ({
+let chests = spawnPoints.map((point, index) => ({
     id: `chest-${index + 1}`,
     x: point.x,
     y: point.y,
@@ -129,7 +144,6 @@ const chests = spawnPoints.map((point, index) => ({
     items: [],
 }));
 console.log("Initialisierte Truhen:", chests);
-// Lobby erstellen
 app.post("/lobby", async (req, res) => {
     const { username, name, password } = req.body;
     if (!username ||
@@ -141,7 +155,6 @@ app.post("/lobby", async (req, res) => {
             .json({ error: "Ungültiger Username oder Lobbyname" });
     }
     const lobbyId = (0, crypto_1.randomUUID)();
-    // 1. Lobby erstellen
     const { error: lobbyError } = await supabase
         .from("lobbys")
         .insert([{ id: lobbyId, host: username, name, password }]);
@@ -149,7 +162,6 @@ app.post("/lobby", async (req, res) => {
         console.error("Supabase-Fehler (Lobby erstellen):", lobbyError);
         return res.status(500).json({ error: lobbyError.message });
     }
-    // 2. Host als Spieler hinzufügen UND direkt ID zurückbekommen
     const { data: insertedPlayer, error: playerInsertError } = await supabase
         .from("players")
         .insert([{ username, lobby_id: lobbyId }])
@@ -159,7 +171,6 @@ app.post("/lobby", async (req, res) => {
         console.error("Supabase-Fehler (Host als Spieler hinzufügen):", playerInsertError);
         return res.status(500).json({ error: playerInsertError.message });
     }
-    // 3. Leeren Skin für Host anlegen
     const { error: skinError } = await supabase.from("skins").insert([
         {
             player_id: insertedPlayer.id,
@@ -176,10 +187,8 @@ app.post("/lobby", async (req, res) => {
     }
     res.json({ lobbyId });
 });
-// Lobby beitreten
 app.post("/lobby/join", async (req, res) => {
     const { username, lobbyId, password } = req.body;
-    // 1. Hole die Lobby mit Passwort + max_players
     const { data: lobby, error: lobbyError } = await supabase
         .from("lobbys")
         .select("id, password, max_players")
@@ -188,11 +197,9 @@ app.post("/lobby/join", async (req, res) => {
     if (lobbyError || !lobby) {
         return res.status(404).json({ error: "Lobby nicht gefunden" });
     }
-    // 2. Prüfe Passwort, falls gesetzt
     if (lobby.password && lobby.password !== password) {
         return res.status(401).json({ error: "Falsches Passwort" });
     }
-    // 3. Zähle, wie viele Spieler schon in der Lobby sind
     const { count, error: countError } = await supabase
         .from("players")
         .select("*", { count: "exact", head: true })
@@ -203,17 +210,15 @@ app.post("/lobby/join", async (req, res) => {
     if (count !== null && count >= lobby.max_players) {
         return res.status(400).json({ error: "Lobby ist voll" });
     }
-    // 4. Füge den Spieler hinzu
     const { data: insertedPlayer, error: insertError } = await supabase
         .from("players")
         .insert([{ username, lobby_id: lobbyId }])
-        .select("id") // wir brauchen die id für die Skin-Verknüpfung
+        .select("id")
         .single();
     if (insertError) {
         return res.status(500).json({ error: "Fehler beim Beitritt zur Lobby" });
     }
     const playerId = insertedPlayer.id;
-    // 5. Prüfe, ob bereits ein Skin für diesen Spieler existiert
     const { data: existingSkin, error: skinCheckError } = await supabase
         .from("skins")
         .select("id")
@@ -221,9 +226,7 @@ app.post("/lobby/join", async (req, res) => {
         .maybeSingle();
     if (skinCheckError) {
         console.error("Fehler beim Skin-Check:", skinCheckError.message);
-        // Fehler loggen, aber Spieler trotzdem reinlassen
     }
-    // 6. Wenn kein Skin vorhanden, neuen Standard-Skin einfügen
     if (!existingSkin) {
         const { error: skinInsertError } = await supabase.from("skins").insert([
             {
@@ -237,13 +240,11 @@ app.post("/lobby/join", async (req, res) => {
         ]);
         if (skinInsertError) {
             console.error("Fehler beim Erstellen des Skins:", skinInsertError.message);
-            // ebenfalls nicht blockieren
         }
     }
     await updateLobbyActivity(lobbyId);
     res.status(200).json({ message: "Beigetreten" });
 });
-// Spieler aus Lobby entfernen
 app.delete("/lobby/:id/leave/:username", async (req, res) => {
     const { id, username } = req.params;
     const { error } = await supabase
@@ -256,7 +257,6 @@ app.delete("/lobby/:id/leave/:username", async (req, res) => {
             .status(500)
             .json({ error: "Fehler beim Entfernen des Spielers" });
     }
-    // Prüfe, ob noch Spieler in der Lobby sind
     const { data: remainingPlayers, error: countError } = await supabase
         .from("players")
         .select("*")
@@ -265,7 +265,6 @@ app.delete("/lobby/:id/leave/:username", async (req, res) => {
         console.error("Fehler beim Zählen der verbleibenden Spieler:", countError);
         return res.status(500).json({ error: "Fehler beim Zählen der Spieler" });
     }
-    // Wenn keine Spieler mehr übrig sind, lösche die Lobby
     if (remainingPlayers.length === 0) {
         const { error: deleteError } = await supabase
             .from("lobbys")
@@ -279,7 +278,6 @@ app.delete("/lobby/:id/leave/:username", async (req, res) => {
     }
     res.json({ success: true });
 });
-// Alle offenen Lobbys holen
 app.get("/lobbys", async (_req, res) => {
     const { data, error } = await supabase
         .from("lobbys")
@@ -289,7 +287,6 @@ app.get("/lobbys", async (_req, res) => {
         return res.status(500).json({ error: error.message });
     res.json(data);
 });
-// Einzelne Lobby holen
 app.get("/lobbys/:id", async (req, res) => {
     const { id } = req.params;
     const { data, error } = await supabase
@@ -301,7 +298,6 @@ app.get("/lobbys/:id", async (req, res) => {
         return res.status(404).json({ error: "Lobby nicht gefunden" });
     res.json(data);
 });
-// Spieler in Lobby
 app.get("/lobbys/:id/players", async (req, res) => {
     const { id } = req.params;
     const { data, error } = await supabase
@@ -312,7 +308,6 @@ app.get("/lobbys/:id/players", async (req, res) => {
         return res.status(500).json({ error: "Fehler beim Abrufen der Spieler" });
     res.json(data);
 });
-// Nachrichten holen
 app.get("/messages/:lobbyId", async (req, res) => {
     const { lobbyId } = req.params;
     const { data, error } = await supabase
@@ -324,7 +319,6 @@ app.get("/messages/:lobbyId", async (req, res) => {
         return res.status(500).json({ error: "Fehler beim Laden der Nachrichten" });
     res.json(data);
 });
-// Nachricht schreiben
 app.post("/messages", async (req, res) => {
     const { username, lobbyId, content } = req.body;
     if (!username || !lobbyId || !content) {
@@ -341,7 +335,6 @@ app.post("/messages", async (req, res) => {
     await updateLobbyActivity(lobbyId);
     res.json({ success: true });
 });
-// Zeichnungen empfangen
 app.post("/drawings", async (req, res) => {
     const { lobbyId, x, y, color, thickness } = req.body;
     if (!lobbyId || x === undefined || y === undefined) {
@@ -358,7 +351,6 @@ app.post("/drawings", async (req, res) => {
     await updateLobbyActivity(lobbyId);
     res.json({ success: true });
 });
-// Zeichnungen abrufen
 app.get("/drawings/:lobbyId", async (req, res) => {
     const { lobbyId } = req.params;
     const { data, error } = await supabase
@@ -371,7 +363,6 @@ app.get("/drawings/:lobbyId", async (req, res) => {
     }
     res.json(data);
 });
-// PATCH /lobbys/:id/settings
 app.patch("/lobbys/:id/settings", async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
@@ -384,7 +375,6 @@ app.patch("/lobbys/:id/settings", async (req, res) => {
 });
 app.delete("/lobby/:lobbyId/kick/:username", async (req, res) => {
     const { lobbyId, username } = req.params;
-    // Spieler aus der Datenbank entfernen
     const { error } = await supabase
         .from("players")
         .delete()
@@ -392,7 +382,6 @@ app.delete("/lobby/:lobbyId/kick/:username", async (req, res) => {
     if (error) {
         return res.status(500).json(error);
     }
-    // Realtime-Broadcast an alle Clients in der Lobby
     await supabase.channel(`lobby-${lobbyId}`).send({
         type: "broadcast",
         event: "player-kicked",
@@ -416,8 +405,6 @@ app.get("/lobby/:lobbyId/host", async (req, res) => {
 });
 app.post("/lobby/start", async (req, res) => {
     const { lobbyId, username, skin } = req.body;
-    // console.log("Empfangen:", { lobbyId, username });
-    // console.log("Skin-Daten empfangen:", JSON.stringify(skin, null, 2));
     const { data: player, error: playerError } = await supabase
         .from("players")
         .select("id")
@@ -444,7 +431,6 @@ app.post("/lobby/start", async (req, res) => {
             .status(500)
             .json({ error: "Skin konnte nicht aktualisiert werden" });
     }
-    // Spiel in Tabelle eintragen
     const { error: gameError } = await supabase.from("games").insert([
         {
             lobby_id: lobbyId,
@@ -458,29 +444,17 @@ app.post("/lobby/start", async (req, res) => {
             .status(500)
             .json({ error: "Spiel konnte nicht gestartet werden" });
     }
-    // console.log("Spiel erstellt + Skin gespeichert!");
     await supabase.channel(`lobby-${lobbyId}`).send({
         type: "broadcast",
         event: "game-started",
         payload: { message: "Das Spiel wurde gestartet", lobbyId },
     });
-    // Sende die Kisten an alle verbundenen Clients
     io.emit("chestsUpdate", chests);
     console.log("Kisten beim Spielstart gesendet:", chests);
     res
         .status(200)
         .json({ message: "Spiel wurde gestartet und Skin gespeichert" });
 });
-//
-//
-//
-//
-//
-//
-//
-//
-//
-//
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 app.use(express_1.default.json());
@@ -492,21 +466,13 @@ const io = new socket_io_1.Server(server, {
         credentials: true,
     },
 });
-// Spielerliste nach socket.id
 const connectedPlayers = {};
 const bullets = [];
 io.on("connection", (socket) => {
-    // console.log("Neue Socket-Verbindung:", socket.id); // ← ganz oben
-    // console.log(`Spieler verbunden: ${socket.id}`);
-    // Sende die Kisten sofort bei der Verbindung
     socket.emit("chestsUpdate", chests);
     console.log("Kisten bei Verbindung gesendet:", chests);
-    socket.onAny((event, ...args) => {
-        // console.log(`[SOCKET EVENT] ${event}`, args);
-    });
+    socket.onAny((event, ...args) => { });
     socket.on("join", async (data) => {
-        // console.log("Spieler gejoint (empfangen):", data.username);
-        // Hole Skin-Informationen aus der Datenbank
         const { data: playerData, error: playerError } = await supabase
             .from("players")
             .select("id")
@@ -525,7 +491,6 @@ io.on("connection", (socket) => {
             console.error("Fehler beim Laden des Skins:", skinError);
             return;
         }
-        // Wähle einen zufälligen Spawn-Punkt
         const randomSpawnPoint = playerSpawnPoints.length > 0
             ? playerSpawnPoints[Math.floor(Math.random() * playerSpawnPoints.length)]
             : { x: 100 + Math.random() * 200, y: 100 + Math.random() * 200 };
@@ -562,22 +527,14 @@ io.on("connection", (socket) => {
             dx = dx / length;
             dy = dy / length;
         }
-        // Neue Position berechnen
         const newX = player.x + dx * speed;
         const newY = player.y + dy * speed;
-        // Kollisionsprüfung
         if (!checkCollision(newX, newY)) {
             player.x = newX;
             player.y = newY;
             io.emit("playersUpdate", connectedPlayers);
         }
     });
-    // socket.on("shoot", ({ x, y, dx, dy }) => {
-    //   const id = crypto.randomUUID();
-    //   const bullet: Bullet = { id, x, y, dx, dy };
-    //   bullets.push(bullet);
-    //   io.emit("bulletFired", bullet);
-    // });
     socket.on("bulletFired", (bulletData) => {
         const player = connectedPlayers[socket.id];
         if (!player || !player.isAlive)
@@ -601,7 +558,6 @@ io.on("connection", (socket) => {
             return;
         const now = Date.now();
         const duration = data.duration || 0;
-        // Sende den visuellen Effekt an alle Spieler
         io.emit("visualEffect", {
             type: data.type,
             playerId: socket.id,
@@ -632,7 +588,7 @@ io.on("connection", (socket) => {
         io.emit("playersUpdate", connectedPlayers);
     });
     socket.on("pingTest", (cb) => {
-        cb(); // sofortige Antwort
+        cb();
     });
     socket.on("openChest", (chestId) => {
         const player = connectedPlayers[socket.id];
@@ -646,68 +602,53 @@ io.on("connection", (socket) => {
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 50) {
             chest.opened = true;
-            // Generiere zufällige Items für die Truhe
             chest.items = generateRandomItems();
-            // Sende sofort ein Update an alle Clients
             io.emit("chestsUpdate", chests);
-            // Sende die Items an ALLE Spieler zusammen mit der Truhenposition
             if (chest.items.length > 0) {
-                // Berechne für jedes Item eine zufällige Position
                 const itemsWithPositions = chest.items.map((item) => {
                     const position = calculateItemPosition(chest.x, chest.y);
                     return { item, position };
                 });
-                // Sende die Items sofort
                 io.emit("itemsSpawned", itemsWithPositions);
             }
             console.log(`${player.username} hat Truhe ${chest.id} geöffnet und ${chest.items.length} Items gefunden`);
         }
     });
     socket.on("itemPickedUp", (itemId) => {
-        // Informiere alle Spieler, dass das Item aufgesammelt wurde
         io.emit("itemRemoved", itemId);
     });
     socket.on("itemDropped", (data) => {
-        // Informiere alle Spieler, dass ein neues Item gedroppt wurde
         io.emit("itemDropped", data);
     });
+    socket.on("requestChests", () => {
+        socket.emit("chestsUpdate", chests);
+        console.log("Kisten auf Anfrage gesendet:", chests);
+    });
 });
-// Game Loop für Spieler-Status-Updates
 setInterval(() => {
-    // Prüfe, ob Spieler gestorben sind
     Object.entries(connectedPlayers).forEach(([socketId, player]) => {
         if (player.health <= 0 && player.isAlive) {
-            // Markiere Spieler als nicht mehr am Leben
             connectedPlayers[socketId].isAlive = false;
-            // Informiere alle Clients über den Tod des Spielers
             io.emit("playerDied", { socketId, username: player.username });
         }
     });
-    // Prüfe, ob nur noch ein Spieler am Leben ist (Spielende)
     const alivePlayers = Object.values(connectedPlayers).filter((player) => player.isAlive);
     if (alivePlayers.length === 1 && Object.values(connectedPlayers).length > 1) {
-        // Spiel ist vorbei, ein Spieler hat gewonnen
         const winner = alivePlayers[0];
-        // Erstelle eine Kopie des finalen Spielerstatus für den Game-Over-Screen
         const finalGameState = Object.entries(connectedPlayers).map(([socketId, player]) => ({
             username: player.username,
             isAlive: player.isAlive,
         }));
-        // Informiere alle Clients über das Spielende mit dem finalen Status
         io.emit("gameOver", { winner, finalGameState });
-        // Navigiere alle Spieler zur Game-Over-Seite
         io.emit("navigateToGameOver", {
             winner,
             finalGameState,
             isGameFinished: true,
         });
-        // Setze Truhen zurück, damit sie im nächsten Spiel wieder verfügbar sind
         chests.forEach((chest) => {
             chest.opened = false;
         });
-        // Informiere alle Clients über die zurückgesetzten Truhen
         io.emit("chestsUpdate", chests);
-        // Setze alle Spieler-Status zurück
         Object.values(connectedPlayers).forEach((player) => {
             player.health = 100;
             player.isAlive = true;
@@ -716,52 +657,41 @@ setInterval(() => {
             player.damageBoost = undefined;
         });
     }
-    // Sende aktualisierte Spieler-Informationen an alle Clients
     io.emit("playersUpdate", connectedPlayers);
 }, 1000);
-// Kollisionen prüfen & Leben abziehen
 setInterval(() => {
     const now = Date.now();
     let bulletsUpdated = false;
-    // Entferne alte Geschosse (älter als 5 Sekunden)
     for (let i = bullets.length - 1; i >= 0; i--) {
         if (now - bullets[i].createdAt > 5000) {
             bullets.splice(i, 1);
             bulletsUpdated = true;
             continue;
         }
-        // Aktualisiere Position
         bullets[i].x += bullets[i].vx;
         bullets[i].y += bullets[i].vy;
-        // Prüfe Kollision mit Wänden
         if (checkCollision(bullets[i].x, bullets[i].y)) {
             bullets.splice(i, 1);
             bulletsUpdated = true;
             continue;
         }
-        // Prüfe Kollision mit Spielern
         const playerRadius = 20;
         const bulletRadius = 5;
         const collisionDistance = playerRadius + bulletRadius;
         for (const [socketId, player] of Object.entries(connectedPlayers)) {
-            // Überspringe den Spieler, der die Kugel geschossen hat
             if (bullets[i].ownerId === socketId)
                 continue;
-            // Überspringe tote Spieler
             if (!player.isAlive)
                 continue;
             const dx = player.x - bullets[i].x;
             const dy = player.y - bullets[i].y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             if (distance < collisionDistance) {
-                // Basis-Schaden
                 let damage = 2;
-                // Erhöhe Schaden, wenn Schütze einen Schadensboost hat
                 const shooter = connectedPlayers[bullets[i].ownerId];
                 if (shooter && shooter.damageBoost) {
                     damage *= 1 + shooter.damageBoost / 100;
                 }
-                // Reduziere Schaden durch Schild
                 if (player.shield) {
                     const blockedDamage = Math.min(damage, player.shield);
                     damage -= blockedDamage;
@@ -770,7 +700,6 @@ setInterval(() => {
                         delete player.shield;
                     }
                 }
-                // Wende finalen Schaden an
                 player.health = Math.max(player.health - damage, 0);
                 bullets.splice(i, 1);
                 bulletsUpdated = true;
@@ -780,12 +709,10 @@ setInterval(() => {
             }
         }
     }
-    // Sende aktualisierte Bullets an alle Clients, wenn sich etwas geändert hat
     if (bulletsUpdated) {
         io.emit("bulletsUpdate", bullets);
     }
 }, 16);
-// Liste aller möglichen Items
 const possibleItems = [
     {
         id: "heal-potion-1",
@@ -820,36 +747,26 @@ const possibleItems = [
         icon_url: "/items/damage_boost.png",
     },
 ];
-// Funktion zum Generieren zufälliger Items
 function generateRandomItems() {
-    // 50/50 Chance für 1 oder 2 Items
     const itemCount = Math.random() < 0.5 ? 1 : 2;
     const items = [];
-    // Kopiere die möglichen Items, damit wir sie zufällig auswählen können
     const availableItems = [...possibleItems];
     for (let i = 0; i < itemCount; i++) {
         if (availableItems.length === 0)
             break;
-        // Wähle ein zufälliges Item aus
         const randomIndex = Math.floor(Math.random() * availableItems.length);
         const selectedItem = availableItems[randomIndex];
-        // Erstelle eine Kopie des Items mit einer neuen ID
         items.push({
             ...selectedItem,
             id: `${selectedItem.id}-${crypto.randomUUID()}`,
         });
-        // Entferne das ausgewählte Item aus der verfügbaren Liste
         availableItems.splice(randomIndex, 1);
     }
     return items;
 }
-// Funktion zum Berechnen der Position eines Items mit zufälliger Kraft
 function calculateItemPosition(chestX, chestY) {
-    // Zufälliger Winkel im Bogenmaß (0 bis 2π)
     const angle = Math.random() * Math.PI * 2;
-    // Zufällige Kraft zwischen 30 und 60
     const force = 30 + Math.random() * 30;
-    // Berechne die neue Position basierend auf Winkel und Kraft
     const x = chestX + Math.cos(angle) * force;
     const y = chestY + Math.sin(angle) * force;
     return { x, y };
@@ -858,7 +775,6 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Server + WebSocket läuft auf http://localhost:${PORT}`);
 });
-// Funktion zum Überprüfen und Löschen inaktiver Lobbys
 async function cleanupInactiveLobbies() {
     const oneMinuteAgo = new Date(Date.now() - 60000).toISOString();
     const { data: inactiveLobbies, error } = await supabase
@@ -879,7 +795,6 @@ async function cleanupInactiveLobbies() {
         }
     }
 }
-// Aktualisiere die Lobby-Aktivität
 async function updateLobbyActivity(lobbyId) {
     const { error } = await supabase
         .from("lobbys")
@@ -889,5 +804,39 @@ async function updateLobbyActivity(lobbyId) {
         console.error("Fehler beim Aktualisieren der Lobby-Aktivität:", error);
     }
 }
-// Führe die Bereinigung alle 30 Sekunden durch
 setInterval(cleanupInactiveLobbies, 30000);
+async function saveChests() {
+    try {
+        await supabase.from("chests").upsert(chests.map((chest) => ({
+            id: chest.id,
+            x: chest.x,
+            y: chest.y,
+            opened: chest.opened,
+            items: chest.items,
+        })));
+    }
+    catch (error) {
+        console.error("Fehler beim Speichern der Truhen:", error);
+    }
+}
+async function loadChests() {
+    try {
+        const { data, error } = await supabase.from("chests").select("*");
+        if (error)
+            throw error;
+        if (data && data.length > 0) {
+            chests = data.map((chest) => ({
+                id: chest.id,
+                x: chest.x,
+                y: chest.y,
+                opened: chest.opened,
+                items: chest.items || [],
+            }));
+        }
+    }
+    catch (error) {
+        console.error("Fehler beim Laden der Truhen:", error);
+    }
+}
+loadChests();
+setInterval(saveChests, 30000);
