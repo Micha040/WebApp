@@ -8,7 +8,7 @@ import JoinLobbyModal from './components/JoinLobbyModal';
 import { Toast } from './components/Toast';
 import GameView from './pages/GameView';
 import GameOverView from './pages/GameOverView';
-
+import './App.css';
 
 function App() {
   const [username, setUsername] = useState('');
@@ -125,100 +125,109 @@ function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#121212', color: '#fff' }}>
-            <div style={{ flex: 1, padding: '2rem', maxWidth: '400px', backgroundColor: '#1e1e1e' }}>
-              <h1>👨Lobby-System</h1>
+    <div className="app-container">
+      <nav className="navbar">
+        <div className="navbar-brand">🎮 Game Lobby</div>
+        <div className="navbar-menu">
+          <button className="nav-button">Home</button>
+          <button className="nav-button">Lobbys</button>
+          <button className="nav-button">Profil</button>
+          <button className="nav-button login-button">Login</button>
+        </div>
+      </nav>
 
-              <button onClick={() => setShowModal(true)}>➕ Lobby erstellen</button>
-
-              {error && <p style={{ color: 'red' }}>{error}</p>}
-            </div>
-
-            <div style={{ flex: 2, padding: '2rem' }}>
-              <h2>Offene Lobbys</h2>
-              <LobbyList lobbys={lobbys} onJoin={handleJoinLobby} />
-            </div>
-
-            {/* Create Lobby Modal */}
-            {showModal && (
-              <Modal title="Neue Lobby erstellen" onClose={() => setShowModal(false)}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <input
-                    type="text"
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Lobbyname"
-                    value={lobbyName}
-                    onChange={(e) => setLobbyName(e.target.value)}
-                  />
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={usePassword}
-                      onChange={(e) => setUsePassword(e.target.checked)}
-                    />
-                    Passwortschutz aktivieren
-                  </label>
-                  {usePassword && (
-                    <input
-                      type="password"
-                      placeholder="Passwort"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  )}
-                 
-                  <button onClick={handleCreateLobby}>Lobby erstellen</button>
-                  
+      <main className="main-content">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <div className="home-container">
+                <div className="sidebar">
+                  <h1 className="title">👨 Game Lobby System</h1>
+                  <button className="create-button" onClick={() => setShowModal(true)}>
+                    ➕ Neue Lobby erstellen
+                  </button>
+                  {error && <p className="error-message">{error}</p>}
                 </div>
-              </Modal>
-            )}
 
-            {/* Join Lobby Modal */}
-            {showJoinModal && selectedLobby && (
-              <JoinLobbyModal
-              lobby={selectedLobby}
-              username={username}
-              onClose={() => {
-                setShowJoinModal(false);
-                setSelectedLobby(null);
-              }}
-              onSubmit={(enteredUsername, pw) => {
-                if (!selectedLobby) return;
-              
-                console.log("selectedLobby", selectedLobby);
+                <div className="lobby-section">
+                  <h2 className="section-title">Offene Lobbys</h2>
+                  <LobbyList lobbys={lobbys} onJoin={handleJoinLobby} />
+                </div>
 
-                setUsername(enteredUsername); // speichern für später
-                directJoin(selectedLobby.id, pw, enteredUsername);
-                setShowJoinModal(false);
-              }}
-              
-            />
-            
-            )}
-            {toastMessage && (
-                    <Toast
+                {showModal && (
+                  <Modal title="Neue Lobby erstellen" onClose={() => setShowModal(false)}>
+                    <div className="modal-form">
+                      <input
+                        type="text"
+                        placeholder="Username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="modal-input"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Lobbyname"
+                        value={lobbyName}
+                        onChange={(e) => setLobbyName(e.target.value)}
+                        className="modal-input"
+                      />
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={usePassword}
+                          onChange={(e) => setUsePassword(e.target.checked)}
+                        />
+                        Passwortschutz aktivieren
+                      </label>
+                      {usePassword && (
+                        <input
+                          type="password"
+                          placeholder="Passwort"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="modal-input"
+                        />
+                      )}
+                      <button className="modal-submit-button" onClick={handleCreateLobby}>
+                        Lobby erstellen
+                      </button>
+                    </div>
+                  </Modal>
+                )}
+
+                {showJoinModal && selectedLobby && (
+                  <JoinLobbyModal
+                    lobby={selectedLobby}
+                    username={username}
+                    onClose={() => {
+                      setShowJoinModal(false);
+                      setSelectedLobby(null);
+                    }}
+                    onSubmit={(enteredUsername, pw) => {
+                      if (!selectedLobby) return;
+                      setUsername(enteredUsername);
+                      directJoin(selectedLobby.id, pw, enteredUsername);
+                      setShowJoinModal(false);
+                    }}
+                  />
+                )}
+                {toastMessage && (
+                  <Toast
                     message={toastMessage}
                     type={toastType}
                     onClose={() => setToastMessage(null)}
-                    />
-                  )}
-          </div>
-        }
-      />
-      <Route path="/lobby/:id" element={<LobbyView username={username} />} />
-      <Route path="/game/:id" element={<GameView />} />
-      <Route path="/game-over" element={<GameOverView />} />
-    </Routes>
-    
+                  />
+                )}
+              </div>
+            }
+          />
+          <Route path="/lobby/:id" element={<LobbyView username={username} />} />
+          <Route path="/game/:id" element={<GameView />} />
+          <Route path="/game-over" element={<GameOverView />} />
+        </Routes>
+      </main>
+    </div>
   );
 }
 

@@ -8,42 +8,34 @@
   
   export function LobbyList({ lobbys, onJoin }: { lobbys: any[], onJoin: (lobby: any) => void }) {
     if (lobbys.length === 0) {
-      return <p>Keine Lobbys vorhanden.</p>;
+      return <p className="no-lobbies">Keine Lobbys vorhanden.</p>;
     }
   
     return (
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+      <div className="lobby-table-container">
+        <table className="lobby-table">
           <thead>
-            <tr style={{ borderBottom: '2px solid #444' }}>
-              <th style={thStyle}>Name</th>
-              <th style={thStyle}>Host</th>
-              <th style={thStyle}>Erstellt</th>
-              <th style={thStyle}>Aktion</th>
+            <tr>
+              <th>Name</th>
+              <th>Host</th>
+              <th>Erstellt</th>
+              <th>Aktion</th>
             </tr>
           </thead>
           <tbody>
             {lobbys.map((lobby) => (
-              <tr key={lobby.id} style={{ borderBottom: '1px solid #333' }}>
-                <td style={tdStyle}>{lobby.name}</td>
-                <td style={tdStyle}>{lobby.host}</td>
-                <td style={tdStyle}>
+              <tr key={lobby.id}>
+                <td>{lobby.name}</td>
+                <td>{lobby.host}</td>
+                <td>
                   {lobby.created_at
                     ? new Date(lobby.created_at).toLocaleString()
                     : 'Kein Datum'}
                 </td>
-                <td style={tdStyle}>
+                <td>
                   <button
                     onClick={() => onJoin(lobby)}
-                    style={{
-                      padding: '0.3rem 0.6rem',
-                      fontSize: '0.9rem',
-                      backgroundColor: '#333',
-                      color: '#fff',
-                      border: '1px solid #ccc',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                    }}
+                    className="join-button"
                   >
                     Beitreten
                   </button>

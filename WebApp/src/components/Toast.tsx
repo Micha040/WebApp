@@ -22,24 +22,16 @@ export function Toast({ message, type = 'info', duration = 3000, onClose }: Toas
   if (!visible) return null;
 
   const background = {
-    success: '#2ecc71',
-    error: '#e74c3c',
-    info: '#3498db',
+    success: 'var(--success-color)',
+    error: 'var(--error-color)',
+    info: 'var(--primary-color)',
   }[type];
 
   return (
     <div
+      className="toast"
       style={{
-        position: 'fixed',
-        bottom: '2rem',
-        left: '50%',
-        transform: 'translateX(-50%)',
         backgroundColor: background,
-        color: 'white',
-        padding: '0.8rem 1.5rem',
-        borderRadius: '8px',
-        boxShadow: '0 0 10px rgba(0,0,0,0.2)',
-        zIndex: 9999,
       }}
     >
       {message}
