@@ -40,8 +40,10 @@ const GameOverView: React.FC = () => {
     });
 
     // Höre auf navigateToGameOver-Event
-    socket.on('navigateToGameOver', (data: { finalGameState: FinalGameState }) => {
+    socket.on('navigateToGameOver', (data: { winner: Player, finalGameState: FinalGameState }) => {
+      setWinner(data.winner);
       setFinalGameState(data.finalGameState);
+      setShowConfetti(true);
     });
 
     return () => {
