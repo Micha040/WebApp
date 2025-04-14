@@ -190,13 +190,15 @@ const GameView: React.FC = () => {
 
   // Effekt für den Tod des Spielers
   useEffect(() => {
-    socket.on('playerDied', () => {
-      setIsDead(true);
+    socket.on('playerDied', (data: { socketId: string, username: string }) => {
+      if (data.username === username) {
+        setIsDead(true);
+      }
     });
     return () => {
       socket.off('playerDied');
     };
-  }, []);
+  }, [username]);
 
   // Effekt für visuelle Effekte
   useEffect(() => {

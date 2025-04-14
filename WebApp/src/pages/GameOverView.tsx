@@ -20,34 +20,33 @@ type Player = {
   };
 };
 
+type FinalGameState = {
+  username: string;
+  isAlive: boolean;
+}[];
+//test
 const GameOverView: React.FC = () => {
   const navigate = useNavigate();
   const [winner, setWinner] = useState<Player | null>(null);
-  const [players, setPlayers] = useState<Record<string, Player>>({});
+  const [finalGameState, setFinalGameState] = useState<FinalGameState>([]);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
 
   useEffect(() => {
-    // Höre auf Spieler-Updates
-    socket.on('playersUpdate', (data: Record<string, Player>) => {
-      setPlayers(data);
-      
-      // Prüfe, ob nur noch ein Spieler am Leben ist
-      const alivePlayers = Object.values(data).filter(player => player.isAlive);
-      if (alivePlayers.length === 1) {
-        setWinner(alivePlayers[0]);
-        setShowConfetti(true);
-      }
-    });
-
     // Höre auf Game-Over-Event
-    socket.on('gameOver', (winnerData: Player) => {
-      setWinner(winnerData);
+    socket.on('gameOver', (data: { winner: Player, finalGameState: FinalGameState }) => {
+      setWinner(data.winner);
+      setFinalGameState(data.finalGameState);
       setShowConfetti(true);
     });
 
+    // Höre auf navigateToGameOver-Event
+    socket.on('navigateToGameOver', (data: { finalGameState: FinalGameState }) => {
+      setFinalGameState(data.finalGameState);
+    });
+
     return () => {
-      socket.off('playersUpdate');
       socket.off('gameOver');
+      socket.off('navigateToGameOver');
     };
   }, [navigate]);
 
@@ -251,7 +250,7 @@ const GameOverView: React.FC = () => {
               overflowY: 'auto',
             }}
           >
-            {Object.values(players).map((player, index) => (
+            {finalGameState.map((player, index) => (
               <div
                 key={index}
                 style={{
@@ -259,58 +258,18 @@ const GameOverView: React.FC = () => {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '10px',
-                  backgroundColor: player.isAlive ? 'rgba(0, 128, 0, 0.3)' : 'rgba(128, 0, 0, 0.3)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  marginBottom: '0.5rem',
                   borderRadius: '5px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div
-                    style={{
-                      width: '30px',
-                      height: '30px',
-                      position: 'relative',
-                      borderRadius: '50%',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    <img
-                      src={`/skins/Balls/${player.skin.ball}.png`}
-                      alt="ball"
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
-                    />
-                    <img
-                      src={`/skins/Eyes/${player.skin.eyes}.png`}
-                      alt="eyes"
-                      style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
-                    />
-                    <img
-                      src={`/skins/Mouths/${player.skin.mouth}.png`}
-                      alt="mouth"
-                      style={{ 
-                        position: 'absolute', 
-                        top: '45%', 
-                        left: '50%', 
-                        width: '60%',
-                        transform: 'translate(-50%, -50%)'
-                      }}
-                    />
-                    {player.skin.top !== 'none' && (
-                      <img
-                        src={`/skins/Tops/${player.skin.top}.png`}
-                        alt="top"
-                        style={{ position: 'absolute', top: 0, left: 0, width: '100%' }}
-                      />
-                    )}
-                  </div>
-                  <span style={{ fontWeight: 'bold' }}>{player.username}</span>
-                </div>
-                <div>
-                  {player.isAlive ? (
-                    <span style={{ color: '#4CAF50' }}>Überlebt</span>
-                  ) : (
-                    <span style={{ color: '#f44336' }}>Eliminiert</span>
-                  )}
-                </div>
+                <span>{player.username}</span>
+                <span style={{
+                  color: player.isAlive ? '#4CAF50' : '#f44336',
+                  fontWeight: 'bold'
+                }}>
+                  {player.isAlive ? 'Überlebt' : 'Gestorben'}
+                </span>
               </div>
             ))}
           </div>
