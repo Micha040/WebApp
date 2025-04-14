@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
 // Socket-Verbindung außerhalb der Komponente erstellen
@@ -27,20 +27,22 @@ type FinalGameState = {
 //test
 const GameOverView: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [winner, setWinner] = useState<Player | null>(null);
   const [finalGameState, setFinalGameState] = useState<FinalGameState>([]);
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
 
   useEffect(() => {
-    // Höre auf Game-Over-Event
-    socket.on('gameOver', (data: { winner: Player, finalGameState: FinalGameState }) => {
-      setWinner(data.winner);
-      setFinalGameState(data.finalGameState);
+    // Hole die Daten aus der Navigation
+    const gameData = location.state;
+    if (gameData) {
+      setWinner(gameData.winner);
+      setFinalGameState(gameData.finalGameState);
       setShowConfetti(true);
-    });
+    }
 
-    // Höre auf navigateToGameOver-Event
-    socket.on('navigateToGameOver', (data: { winner: Player, finalGameState: FinalGameState }) => {
+    // Höre auf Game-Over-Event (falls die Daten nicht über die Navigation kamen)
+    socket.on('gameOver', (data: { winner: Player, finalGameState: FinalGameState }) => {
       setWinner(data.winner);
       setFinalGameState(data.finalGameState);
       setShowConfetti(true);
@@ -48,9 +50,8 @@ const GameOverView: React.FC = () => {
 
     return () => {
       socket.off('gameOver');
-      socket.off('navigateToGameOver');
     };
-  }, [navigate]);
+  }, [location.state]);
 
   // Funktion zum Zurückkehren zur Startseite
   const handleReturnToHome = () => {

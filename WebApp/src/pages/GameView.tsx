@@ -766,13 +766,20 @@ const GameView: React.FC = () => {
   useEffect(() => {
     // ... existing code ...
 
+    // Höre auf gameOver-Event
+    socket.on('gameOver', (data: { winner: any, finalGameState: any }) => {
+      // Navigiere zur Game-Over-Seite mit den Daten
+      navigate('/game-over', { state: data });
+    });
+
     // Höre auf navigateToGameOver-Event
-    socket.on('navigateToGameOver', () => {
-      navigate('/game-over');
+    socket.on('navigateToGameOver', (data: { winner: any, finalGameState: any }) => {
+      navigate('/game-over', { state: data });
     });
 
     return () => {
       // ... existing code ...
+      socket.off('gameOver');
       socket.off('navigateToGameOver');
     };
   }, [navigate]);
