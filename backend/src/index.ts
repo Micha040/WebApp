@@ -1444,6 +1444,9 @@ app.post("/games/save", authenticateToken, async (req: AuthRequest, res) => {
   }
 
   try {
+    console.log("Empfangene Spieldaten:", gameData);
+    console.log("User ID:", userId);
+
     const { error } = await supabase.from("game_history").insert([
       {
         ...gameData,
@@ -1451,7 +1454,10 @@ app.post("/games/save", authenticateToken, async (req: AuthRequest, res) => {
       },
     ]);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase Fehler:", error);
+      throw error;
+    }
 
     res.json({ success: true });
   } catch (err) {

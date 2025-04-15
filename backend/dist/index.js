@@ -1066,14 +1066,18 @@ app.post("/games/save", authenticateToken, async (req, res) => {
         return res.status(401).json({ error: "Nicht authentifiziert" });
     }
     try {
+        console.log("Empfangene Spieldaten:", gameData);
+        console.log("User ID:", userId);
         const { error } = await supabase.from("game_history").insert([
             {
                 ...gameData,
                 game_date: new Date().toISOString(),
             },
         ]);
-        if (error)
+        if (error) {
+            console.error("Supabase Fehler:", error);
             throw error;
+        }
         res.json({ success: true });
     }
     catch (err) {
