@@ -487,3 +487,103 @@ body {
   background-color: #45a049;
 }
 
+/* Played Games View */
+.played-games-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.played-games-container h1 {
+  color: #fff;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.no-games {
+  text-align: center;
+  color: #888;
+  font-size: 1.2rem;
+}
+
+.games-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.game-card {
+  background-color: #1a1a1a;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.game-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.winner-info {
+  font-size: 1.2rem;
+  color: #4caf50;
+}
+
+.game-details {
+  display: flex;
+  gap: 1rem;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.players-list {
+  margin-top: 1rem;
+}
+
+.players-list h3 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem;
+  border-radius: 5px;
+  background-color: #2a2a2a;
+  margin-bottom: 0.5rem;
+}
+
+.placement {
+  font-weight: bold;
+  color: #4caf50;
+  min-width: 30px;
+}
+
+.player-name {
+  flex: 1;
+  color: #fff;
+}
+
+.player-score {
+  color: #888;
+}
+
+.loading {
+  text-align: center;
+  color: #fff;
+  font-size: 1.2rem;
+  margin-top: 2rem;
+}
+

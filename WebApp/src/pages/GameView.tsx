@@ -771,7 +771,8 @@ const GameView: React.FC = () => {
     // ... existing code ...
 
     // Höre auf gameOver-Event
-    socket.on('gameOver', (data: { winner: any, finalGameState: any }) => {
+    socket.on('gameOver', async (data: { winner: any, finalGameState: any }) => {
+      await saveGameHistory(data);
       // Navigiere zur Game-Over-Seite mit den Daten
       navigate('/game-over', { state: data });
     });
@@ -787,6 +788,40 @@ const GameView: React.FC = () => {
       socket.off('navigateToGameOver');
     };
   }, [navigate]);
+
+  const saveGameHistory = async (gameData: any) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/games/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          winner_id: gameData.winner.id,
+          winner_username: gameData.winner.username,
+          duration: gameData.duration,
+          player_count: gameData.players.length,
+          difficulty: gameData.settings.difficulty,
+          players: gameData.players.map((player: any, index: number) => ({
+            id: player.id,
+            username: player.username,
+            score: player.score,
+            placement: index + 1
+          })),
+          settings: {
+            roundTime: gameData.settings.roundTime,
+            maxPlayers: gameData.settings.maxPlayers,
+            allowHints: gameData.settings.allowHints
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Fehler beim Speichern der Spielhistorie');
+      }
+    } catch (err) {
+      console.error('Fehler beim Speichern der Spielhistorie:', err);
+    }
+  };
 
   return (
     <div

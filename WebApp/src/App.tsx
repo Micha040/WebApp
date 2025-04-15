@@ -11,6 +11,7 @@ import { UserMenu } from './components/UserMenu';
 import GameView from './pages/GameView';
 import GameOverView from './pages/GameOverView';
 import ProfileView from './pages/ProfileView';
+import PlayedGamesView from './pages/PlayedGamesView';
 import './App.css';
 
 type User = {
@@ -262,6 +263,7 @@ function App() {
           <Route path="/game/:id" element={<GameView />} />
           <Route path="/game-over" element={<GameOverView />} />
           <Route path="/profile" element={<ProfileView />} />
+          <Route path="/played_games" element={<PlayedGamesView />} />
         </Routes>
       </main>
 
