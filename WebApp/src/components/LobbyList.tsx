@@ -17,6 +17,7 @@
           <thead>
             <tr>
               <th>Name</th>
+              <th>Status</th>
               <th>Host</th>
               <th>Erstellt</th>
               <th>Aktion</th>
@@ -28,6 +29,9 @@
                 <td>
                   {lobby.name}
                   {lobby.has_password && ' 🔒'}
+                </td>
+                <td style={{ textAlign: 'center' }}>
+                  {lobby.has_password ? '🔒' : '🔓'}
                 </td>
                 <td>{lobby.host}</td>
                 <td>
