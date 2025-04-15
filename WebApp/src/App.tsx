@@ -10,6 +10,7 @@ import { AuthModal } from './components/AuthModal';
 import { UserMenu } from './components/UserMenu';
 import GameView from './pages/GameView';
 import GameOverView from './pages/GameOverView';
+import ProfileView from './pages/ProfileView';
 import './App.css';
 
 type User = {
@@ -258,6 +259,7 @@ function App() {
           <Route path="/lobby/:id" element={<LobbyView username={username} />} />
           <Route path="/game/:id" element={<GameView />} />
           <Route path="/game-over" element={<GameOverView />} />
+          <Route path="/profile" element={<ProfileView />} />
         </Routes>
       </main>
 
