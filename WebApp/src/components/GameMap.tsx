@@ -51,26 +51,27 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
     canvas.height = mapData.height * mapData.tileheight;
     console.log('Canvas-Größe:', canvas.width, 'x', canvas.height); // Debug: Canvas-Größe
 
-    // Fülle den Hintergrund mit einer Farbe, um zu sehen, ob das Canvas überhaupt gerendert wird
+    // Fülle den Hintergrund mit einer Farbe
     ctx.fillStyle = '#2d2d2d';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Lade das Tileset
     const tileset = new Image();
+    tileset.crossOrigin = 'anonymous'; // Wichtig für CORS
     tileset.src = '/tileset.png';
-    console.log('Versuche Tileset zu laden:', tileset.src); // Debug: Tileset-Pfad
+    console.log('Versuche Tileset zu laden:', tileset.src);
 
     tileset.onerror = (e) => {
-      console.error('Fehler beim Laden des Tilesets:', e); // Debug: Ladefehler
+      console.error('Fehler beim Laden des Tilesets:', e);
     };
 
     tileset.onload = () => {
-      console.log('Tileset erfolgreich geladen:', tileset.width, 'x', tileset.height); // Debug: Erfolg
+      console.log('Tileset erfolgreich geladen:', tileset.width, 'x', tileset.height);
 
       // Rendere jede Ebene
       mapData.layers.forEach(layer => {
-        console.log('Verarbeite Layer:', layer.name, 'Typ:', layer.type); // Debug: Layer-Info
         if (layer.type !== 'tilelayer') return;
+        console.log(`Verarbeite Layer: ${layer.name}, Anzahl Tiles: ${layer.data.length}`);
 
         layer.data.forEach((tileId, index) => {
           if (tileId === 0) return; // Überspringe leere Tiles
@@ -80,13 +81,20 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
           const y = Math.floor(index / layer.width) * mapData.tileheight;
 
           // Berechne die Position des Tiles im Tileset
+          // Tiled verwendet 1-basierte Indizierung, daher -1
           const srcTileId = tileId - 1;
-          const srcX = (srcTileId % 32) * mapData.tilewidth;
-          const srcY = Math.floor(srcTileId / 32) * mapData.tileheight;
+          const tilesPerRow = tileset.width / mapData.tilewidth;
+          const srcX = (srcTileId % tilesPerRow) * mapData.tilewidth;
+          const srcY = Math.floor(srcTileId / tilesPerRow) * mapData.tileheight;
 
-          // Debug: Zeichne einen roten Punkt für jedes gezeichnete Tile
-          ctx.fillStyle = 'red';
-          ctx.fillRect(x, y, 4, 4);
+          // Debug-Informationen für die ersten paar Tiles
+          if (index < 5) {
+            console.log(`Tile ${index}: ID=${tileId}, Position=(${x},${y}), Source=(${srcX},${srcY})`);
+          }
+
+          // Zeichne einen Rahmen um jedes Tile
+          ctx.strokeStyle = 'rgba(255,0,0,0.2)';
+          ctx.strokeRect(x, y, mapData.tilewidth, mapData.tileheight);
 
           // Zeichne das Tile
           try {
@@ -108,11 +116,18 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
               srcY,
               x,
               y,
-              tilesetSize: `${tileset.width}x${tileset.height}`
+              tilesetSize: `${tileset.width}x${tileset.height}`,
+              tilesPerRow
             });
           }
         });
       });
+
+      // Debug: Zeichne ein Testmuster
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      for (let i = 0; i < 5; i++) {
+        ctx.fillRect(i * 32, i * 32, 32, 32);
+      }
     };
 
     tilesetRef.current = tileset;
@@ -126,7 +141,8 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
         top: 0,
         left: 0,
         zIndex: -1,
-        border: '1px solid red' // Debug: Canvas-Rahmen zum Sehen der Grenzen
+        border: '1px solid red',
+        background: '#2d2d2d'
       }}
     />
   );
