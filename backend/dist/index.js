@@ -846,6 +846,7 @@ setInterval(async () => {
         const finalGameState = Object.entries(connectedPlayers).map(([socketId, player]) => ({
             username: player.username,
             id: player.userId,
+            user_id: player.userId,
             isAlive: player.isAlive,
             placement: player.isAlive ? 1 : 2,
         }));
@@ -854,6 +855,7 @@ setInterval(async () => {
             winner: {
                 username: winner.username,
                 id: winner.userId,
+                user_id: winner.userId,
                 health: winner.health,
                 isAlive: winner.isAlive,
                 skin: winner.skin,
@@ -870,6 +872,8 @@ setInterval(async () => {
             duration: 0,
         };
         console.log("Sending game data:", gameData);
+        console.log("Winner Data:", gameData.winner);
+        console.log("Winner User ID:", gameData.winner.user_id);
         io.emit("gameOver", gameData);
         io.emit("navigateToGameOver", {
             ...gameData,
