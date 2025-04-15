@@ -59,6 +59,12 @@ body {
   color: var(--primary-color);
 }
 
+.navbar-brand img {
+  height: 40px;
+  width: auto;
+  vertical-align: middle;
+}
+
 .navbar-menu {
   display: flex;
   gap: 1rem;

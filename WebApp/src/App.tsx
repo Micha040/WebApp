@@ -156,10 +156,12 @@ function App() {
   return (
     <div className="app-container">
       <nav className="navbar">
-        <div className="navbar-brand">🎮 Game Lobby</div>
+        <div className="navbar-brand">
+          <img src="/logo.png" alt="Game Lobby Logo" />
+        </div>
         <div className="navbar-menu">
           <button className="nav-button" onClick={() => navigate('/')}>Home</button>
-          <button className="nav-button" onClick={() => navigate('/lobbys')}>Lobbys</button>
+          <button className="nav-button" onClick={() => navigate('/played_games')}>Vergangene Spiele</button>
           {user ? (
             <UserMenu user={user} onLogout={() => setUser(null)} />
           ) : (
