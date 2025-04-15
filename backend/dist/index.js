@@ -613,6 +613,17 @@ io.on("connection", (socket) => {
     console.log("Kisten bei Verbindung gesendet:", chests);
     socket.onAny((event, ...args) => { });
     socket.on("join", async (data) => {
+        // Hole die User-ID des Spielers direkt aus der users-Tabelle
+        const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("id")
+            .eq("username", data.username)
+            .single();
+        if (userError) {
+            console.error("Fehler beim Laden der User-ID:", userError);
+        }
+        const userId = userData?.id;
+        console.log(`Spieler ${data.username} tritt bei. User-ID:`, userId);
         const { data: playerData, error: playerError } = await supabase
             .from("players")
             .select("id")
@@ -622,16 +633,6 @@ io.on("connection", (socket) => {
             console.error("Fehler beim Laden des Spielers:", playerError);
             return;
         }
-        // Hole die User-ID des Spielers
-        const { data: userData, error: userError } = await supabase
-            .from("users")
-            .select("id")
-            .eq("username", data.username)
-            .single();
-        if (userError) {
-            console.error("Fehler beim Laden der User-ID:", userError);
-        }
-        console.log(`Spieler ${data.username} tritt bei. User-ID:`, userData?.id);
         const { data: skinData, error: skinError } = await supabase
             .from("skins")
             .select("ball, eyes, mouth, top")
@@ -648,7 +649,7 @@ io.on("connection", (socket) => {
             x: randomSpawnPoint.x,
             y: randomSpawnPoint.y,
             username: data.username,
-            userId: userData?.id,
+            userId: userId,
             health: 100,
             skin: skinData,
             isAlive: true,
@@ -794,21 +795,9 @@ setInterval(async () => {
             username: winner.username,
             userId: winner.userId,
         });
-        // Hole die User-IDs für alle Spieler
-        const userIds = await Promise.all(Object.values(connectedPlayers).map(async (player) => {
-            if (player.userId)
-                return player.userId;
-            // Wenn keine userId vorhanden ist, versuche sie aus der Datenbank zu holen
-            const { data } = await supabase
-                .from("users")
-                .select("id")
-                .eq("username", player.username)
-                .single();
-            return data?.id || "guest";
-        }));
-        const finalGameState = Object.entries(connectedPlayers).map(([socketId, player], index) => ({
+        const finalGameState = Object.entries(connectedPlayers).map(([socketId, player]) => ({
             username: player.username,
-            id: userIds[index],
+            id: player.userId,
             isAlive: player.isAlive,
             placement: player.isAlive ? 1 : 2,
         }));
@@ -816,10 +805,7 @@ setInterval(async () => {
         const gameData = {
             winner: {
                 username: winner.username,
-                id: winner.userId ||
-                    userIds.find((_, index) => Object.values(connectedPlayers)[index].username ===
-                        winner.username) ||
-                    "guest",
+                id: winner.userId,
                 health: winner.health,
                 isAlive: winner.isAlive,
                 skin: winner.skin,
