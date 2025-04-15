@@ -226,9 +226,15 @@ app.post("/lobby", async (req, res) => {
 
   const lobbyId = randomUUID();
 
-  const { error: lobbyError } = await supabase
-    .from("lobbys")
-    .insert([{ id: lobbyId, host: username, name, password }]);
+  const { error: lobbyError } = await supabase.from("lobbys").insert([
+    {
+      id: lobbyId,
+      host: username,
+      name,
+      password,
+      has_password: password ? true : false,
+    },
+  ]);
 
   if (lobbyError) {
     console.error("Supabase-Fehler (Lobby erstellen):", lobbyError);

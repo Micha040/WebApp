@@ -155,9 +155,15 @@ app.post("/lobby", async (req, res) => {
             .json({ error: "Ungültiger Username oder Lobbyname" });
     }
     const lobbyId = (0, crypto_1.randomUUID)();
-    const { error: lobbyError } = await supabase
-        .from("lobbys")
-        .insert([{ id: lobbyId, host: username, name, password }]);
+    const { error: lobbyError } = await supabase.from("lobbys").insert([
+        {
+            id: lobbyId,
+            host: username,
+            name,
+            password,
+            has_password: password ? true : false,
+        },
+    ]);
     if (lobbyError) {
         console.error("Supabase-Fehler (Lobby erstellen):", lobbyError);
         return res.status(500).json({ error: lobbyError.message });
