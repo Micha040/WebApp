@@ -1072,43 +1072,40 @@ setInterval(() => {
   if (alivePlayers.length === 1 && Object.values(connectedPlayers).length > 1) {
     const winner = alivePlayers[0];
 
-    const finalGameState = Object.entries(connectedPlayers).map(
-      ([socketId, player]) => ({
+    // Erstelle finalGameState mit Platzierungen basierend auf dem Todeszeitpunkt
+    const finalGameState = Object.entries(connectedPlayers)
+      .map(([socketId, player]) => ({
         username: player.username,
-        id: player.userId,
+        id: player.userId || "guest", // Fallback für nicht eingeloggte Spieler
         isAlive: player.isAlive,
-      })
-    );
+        placement: player.isAlive ? 1 : 2, // Gewinner ist 1, alle anderen 2
+      }))
+      .sort((a, b) => a.placement - b.placement);
 
-    io.emit("gameOver", {
+    const gameSettings = {
+      difficulty: "normal",
+      roundTime: 0,
+      maxPlayers: Object.keys(connectedPlayers).length,
+      allowHints: false,
+    };
+
+    const gameData = {
       winner: {
         ...winner,
-        id: winner.userId,
+        id: winner.userId || "guest",
       },
       finalGameState,
-      settings: {
-        difficulty: "normal",
-        roundTime: 0,
-        maxPlayers: Object.keys(connectedPlayers).length,
-        allowHints: false,
-      },
-    });
+      settings: gameSettings,
+      duration: 0, // TODO: Spielzeit tracken
+    };
 
+    io.emit("gameOver", gameData);
     io.emit("navigateToGameOver", {
-      winner: {
-        ...winner,
-        id: winner.userId,
-      },
-      finalGameState,
-      settings: {
-        difficulty: "normal",
-        roundTime: 0,
-        maxPlayers: Object.keys(connectedPlayers).length,
-        allowHints: false,
-      },
+      ...gameData,
       isGameFinished: true,
     });
 
+    // Setze das Spiel zurück
     chests.forEach((chest) => {
       chest.opened = false;
     });
