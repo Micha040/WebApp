@@ -40,20 +40,15 @@ const GameOverView: React.FC = () => {
       setFinalGameState(gameData.finalGameState);
       setShowConfetti(true);
 
-      // Speichere die Spieldaten
+      // Speichere die Spieldaten nur für eingeloggte Benutzer
       const saveGameData = async () => {
         try {
-          // Hole zuerst die User-ID des Gewinners
-          const userResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/user/${gameData.winner.username}`, {
-            credentials: 'include'
-          });
-
-          if (!userResponse.ok) {
-            throw new Error('Fehler beim Laden der User-ID');
+          // Überprüfe zuerst, ob der Gewinner ein eingeloggter Benutzer ist
+          if (gameData.winner.id === 'guest') {
+            console.log('Spielhistorie wird nicht gespeichert - Gewinner ist nicht eingeloggt');
+            return;
           }
 
-          const userData = await userResponse.json();
-          
           const response = await fetch(`${import.meta.env.VITE_API_URL}/games/save`, {
             method: 'POST',
             headers: {
@@ -61,15 +56,15 @@ const GameOverView: React.FC = () => {
             },
             credentials: 'include',
             body: JSON.stringify({
-              winner_id: userData.id, // Verwende die User-ID aus der Datenbank
+              winner_id: gameData.winner.id,
               winner_username: gameData.winner.username,
               duration: gameData.duration || 0,
               player_count: gameData.finalGameState.length,
               difficulty: gameData.settings?.difficulty || 'normal',
               players: gameData.finalGameState.map((player: any, index: number) => ({
-                id: player.id,
+                id: player.id === 'guest' ? null : player.id,
                 username: player.username,
-                placement: index + 1
+                placement: player.placement || index + 1
               })),
               settings: gameData.settings || {
                 roundTime: 0,
