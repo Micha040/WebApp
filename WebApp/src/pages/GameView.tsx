@@ -791,6 +791,12 @@ const GameView: React.FC = () => {
 
   const saveGameHistory = async (gameData: any) => {
     try {
+      // Überprüfe, ob die Winner-ID vorhanden ist
+      if (!gameData.winner.id) {
+        console.error('Keine Winner-ID vorhanden:', gameData);
+        return;
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/games/save`, {
         method: 'POST',
         headers: { 
@@ -801,18 +807,17 @@ const GameView: React.FC = () => {
           winner_id: gameData.winner.id,
           winner_username: gameData.winner.username,
           duration: gameData.duration,
-          player_count: gameData.players.length,
-          difficulty: gameData.settings.difficulty,
-          players: gameData.players.map((player: any, index: number) => ({
-            id: player.id,
+          player_count: gameData.finalGameState.length,
+          difficulty: gameData.settings?.difficulty || 'normal',
+          players: gameData.finalGameState.map((player: any) => ({
+            id: player.id || null,
             username: player.username,
-            score: player.score,
-            placement: index + 1
+            placement: player.placement
           })),
           settings: {
-            roundTime: gameData.settings.roundTime,
-            maxPlayers: gameData.settings.maxPlayers,
-            allowHints: gameData.settings.allowHints
+            roundTime: gameData.settings?.roundTime || 0,
+            maxPlayers: gameData.settings?.maxPlayers || gameData.finalGameState.length,
+            allowHints: gameData.settings?.allowHints || false
           }
         })
       });
@@ -822,6 +827,8 @@ const GameView: React.FC = () => {
         console.error('Server-Fehler:', errorData);
         throw new Error('Fehler beim Speichern der Spielhistorie');
       }
+
+      console.log('Spielhistorie erfolgreich gespeichert');
     } catch (err) {
       console.error('Fehler beim Speichern der Spielhistorie:', err);
     }

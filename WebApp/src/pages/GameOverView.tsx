@@ -48,6 +48,12 @@ const GameOverView: React.FC = () => {
       // Speichere die Spieldaten nur für eingeloggte Benutzer
       const saveGameData = async () => {
         try {
+          // Validiere die erforderlichen Daten
+          if (!gameData || !gameData.winner) {
+            console.error('Keine gültigen Spieldaten vorhanden');
+            return;
+          }
+
           // Überprüfe zuerst, ob der Gewinner ein eingeloggter Benutzer ist
           console.log("Winner ID:", gameData.winner.id);
           
@@ -56,21 +62,29 @@ const GameOverView: React.FC = () => {
             return;
           }
 
+          // Validiere finalGameState
+          if (!Array.isArray(gameData.finalGameState) || gameData.finalGameState.length === 0) {
+            console.error('Ungültiger finalGameState');
+            return;
+          }
+
           const gameHistoryData = {
             winner_id: gameData.winner.id,
-            winner_username: gameData.winner.username,
-            duration: gameData.duration || 0,
+            winner_username: gameData.winner.username || 'Unbekannt',
+            duration: Math.max(0, gameData.duration || 0),
             player_count: gameData.finalGameState.length,
-            difficulty: gameData.settings?.difficulty || 'normal',
+            difficulty: ['easy', 'normal', 'hard'].includes(gameData.settings?.difficulty) 
+              ? gameData.settings.difficulty 
+              : 'normal',
             players: gameData.finalGameState.map((player: any) => ({
               id: player.id === 'guest' ? null : player.id,
-              username: player.username,
-              placement: player.placement
+              username: player.username || 'Unbekannt',
+              placement: typeof player.placement === 'number' ? player.placement : 0
             })),
-            settings: gameData.settings || {
-              roundTime: 0,
-              maxPlayers: gameData.finalGameState.length,
-              allowHints: false
+            settings: {
+              roundTime: Math.max(0, gameData.settings?.roundTime || 0),
+              maxPlayers: Math.max(2, gameData.settings?.maxPlayers || gameData.finalGameState.length),
+              allowHints: Boolean(gameData.settings?.allowHints)
             }
           };
 
