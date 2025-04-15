@@ -7,7 +7,7 @@ import fs from "fs";
 import path from "path";
 import { createServer } from "http";
 import { Server } from "socket.io";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 

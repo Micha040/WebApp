@@ -12,7 +12,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const http_1 = require("http");
 const socket_io_1 = require("socket.io");
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 dotenv_1.default.config();
@@ -194,7 +194,7 @@ app.post("/auth/register", async (req, res) => {
                 .json({ error: "E-Mail oder Username bereits vergeben" });
         }
         // Hash das Passwort
-        const hashedPassword = await bcrypt_1.default.hash(password, 10);
+        const hashedPassword = await bcryptjs_1.default.hash(password, 10);
         // Erstelle neuen Benutzer
         const { data: newUser, error } = await supabase
             .from("users")
@@ -246,7 +246,7 @@ app.post("/auth/login", async (req, res) => {
             return res.status(401).json({ error: "Ungültige Anmeldedaten" });
         }
         // Überprüfe Passwort
-        const validPassword = await bcrypt_1.default.compare(password, user.password_hash);
+        const validPassword = await bcryptjs_1.default.compare(password, user.password_hash);
         if (!validPassword) {
             return res.status(401).json({ error: "Ungültige Anmeldedaten" });
         }
