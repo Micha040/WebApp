@@ -32,8 +32,6 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
   const tilesetRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
-    console.log('MapData:', mapData); // Debug: Map-Daten anzeigen
-
     const canvas = canvasRef.current;
     if (!canvas) {
       console.error('Canvas nicht gefunden');
@@ -49,29 +47,58 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
     // Setze die Canvas-Größe
     canvas.width = mapData.width * mapData.tilewidth;
     canvas.height = mapData.height * mapData.tileheight;
-    console.log('Canvas-Größe:', canvas.width, 'x', canvas.height); // Debug: Canvas-Größe
-
-    // Fülle den Hintergrund mit einer Farbe
+    
+    // Fülle den Hintergrund
     ctx.fillStyle = '#2d2d2d';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Debug: Zeichne ein Raster
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    for (let x = 0; x < canvas.width; x += mapData.tilewidth) {
+      for (let y = 0; y < canvas.height; y += mapData.tileheight) {
+        ctx.strokeRect(x, y, mapData.tilewidth, mapData.tileheight);
+      }
+    }
+
     // Lade das Tileset
     const tileset = new Image();
-    tileset.crossOrigin = 'anonymous'; // Wichtig für CORS
-    tileset.src = '/tileset.png';
-    console.log('Versuche Tileset zu laden:', tileset.src);
+    tileset.crossOrigin = 'anonymous';
+    
+    // Versuche verschiedene Pfade für das Tileset
+    const possiblePaths = [
+      '/tileset.png',
+      'tileset.png',
+      `${window.location.origin}/tileset.png`,
+      '/public/tileset.png'
+    ];
 
-    tileset.onerror = (e) => {
-      console.error('Fehler beim Laden des Tilesets:', e);
+    let currentPathIndex = 0;
+
+    const tryLoadTileset = () => {
+      if (currentPathIndex >= possiblePaths.length) {
+        console.error('Konnte Tileset unter keinem der Pfade laden');
+        return;
+      }
+
+      const path = possiblePaths[currentPathIndex];
+      console.log(`Versuche Tileset zu laden von: ${path}`);
+      
+      tileset.src = path;
+    };
+
+    tileset.onerror = () => {
+      console.error(`Fehler beim Laden des Tilesets von: ${tileset.src}`);
+      currentPathIndex++;
+      tryLoadTileset();
     };
 
     tileset.onload = () => {
-      console.log('Tileset erfolgreich geladen:', tileset.width, 'x', tileset.height);
+      console.log('Tileset erfolgreich geladen von:', tileset.src);
+      console.log('Tileset Dimensionen:', tileset.width, 'x', tileset.height);
 
       // Rendere jede Ebene
       mapData.layers.forEach(layer => {
         if (layer.type !== 'tilelayer') return;
-        console.log(`Verarbeite Layer: ${layer.name}, Anzahl Tiles: ${layer.data.length}`);
 
         layer.data.forEach((tileId, index) => {
           if (tileId === 0) return; // Überspringe leere Tiles
@@ -81,22 +108,19 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
           const y = Math.floor(index / layer.width) * mapData.tileheight;
 
           // Berechne die Position des Tiles im Tileset
-          // Tiled verwendet 1-basierte Indizierung, daher -1
           const srcTileId = tileId - 1;
-          const tilesPerRow = tileset.width / mapData.tilewidth;
+          const tilesPerRow = Math.floor(tileset.width / mapData.tilewidth);
           const srcX = (srcTileId % tilesPerRow) * mapData.tilewidth;
           const srcY = Math.floor(srcTileId / tilesPerRow) * mapData.tileheight;
 
-          // Debug-Informationen für die ersten paar Tiles
-          if (index < 5) {
-            console.log(`Tile ${index}: ID=${tileId}, Position=(${x},${y}), Source=(${srcX},${srcY})`);
+          // Debug: Zeichne einen farbigen Rahmen für jedes Tile
+          if (layer.name === 'Ground') {
+            ctx.strokeStyle = 'rgba(0,255,0,0.3)';
+          } else {
+            ctx.strokeStyle = 'rgba(255,0,0,0.3)';
           }
-
-          // Zeichne einen Rahmen um jedes Tile
-          ctx.strokeStyle = 'rgba(255,0,0,0.2)';
           ctx.strokeRect(x, y, mapData.tilewidth, mapData.tileheight);
 
-          // Zeichne das Tile
           try {
             ctx.drawImage(
               tileset,
@@ -109,8 +133,18 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
               mapData.tilewidth,
               mapData.tileheight
             );
+
+            // Debug: Zeichne die Tile-ID in die Mitte des Tiles
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.font = '8px Arial';
+            ctx.fillText(
+              `${tileId}`,
+              x + mapData.tilewidth/2 - 8,
+              y + mapData.tileheight/2 + 3
+            );
+
           } catch (error) {
-            console.error('Fehler beim Zeichnen des Tiles:', error, {
+            console.error('Fehler beim Zeichnen des Tiles:', {
               tileId,
               srcX,
               srcY,
@@ -122,13 +156,10 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
           }
         });
       });
-
-      // Debug: Zeichne ein Testmuster
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      for (let i = 0; i < 5; i++) {
-        ctx.fillRect(i * 32, i * 32, 32, 32);
-      }
     };
+
+    // Starte den Ladeversuch
+    tryLoadTileset();
 
     tilesetRef.current = tileset;
   }, [mapData]);
@@ -141,7 +172,7 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
         top: 0,
         left: 0,
         zIndex: -1,
-        border: '1px solid red',
+        border: '2px solid red',
         background: '#2d2d2d'
       }}
     />
