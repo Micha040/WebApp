@@ -36,6 +36,7 @@ const GameOverView: React.FC = () => {
     // Hole die Daten aus der Navigation
     const gameData = location.state;
     if (gameData) {
+      console.log("Empfangene Spieldaten:", gameData);
       setWinner(gameData.winner);
       setFinalGameState(gameData.finalGameState);
       setShowConfetti(true);
@@ -44,10 +45,33 @@ const GameOverView: React.FC = () => {
       const saveGameData = async () => {
         try {
           // Überprüfe zuerst, ob der Gewinner ein eingeloggter Benutzer ist
-          if (gameData.winner.id === 'guest') {
+          console.log("Winner ID:", gameData.winner.id);
+          console.log("Winner Data:", gameData.winner);
+          
+          if (!gameData.winner.id || gameData.winner.id === 'guest') {
             console.log('Spielhistorie wird nicht gespeichert - Gewinner ist nicht eingeloggt');
             return;
           }
+
+          const gameHistoryData = {
+            winner_id: gameData.winner.id,
+            winner_username: gameData.winner.username,
+            duration: gameData.duration || 0,
+            player_count: gameData.finalGameState.length,
+            difficulty: gameData.settings?.difficulty || 'normal',
+            players: gameData.finalGameState.map((player: any, index: number) => ({
+              id: player.id === 'guest' ? null : player.id,
+              username: player.username,
+              placement: player.placement || index + 1
+            })),
+            settings: gameData.settings || {
+              roundTime: 0,
+              maxPlayers: gameData.finalGameState.length,
+              allowHints: false
+            }
+          };
+
+          console.log("Sende Spieldaten an Server:", gameHistoryData);
 
           const response = await fetch(`${import.meta.env.VITE_API_URL}/games/save`, {
             method: 'POST',
@@ -55,23 +79,7 @@ const GameOverView: React.FC = () => {
               'Content-Type': 'application/json',
             },
             credentials: 'include',
-            body: JSON.stringify({
-              winner_id: gameData.winner.id,
-              winner_username: gameData.winner.username,
-              duration: gameData.duration || 0,
-              player_count: gameData.finalGameState.length,
-              difficulty: gameData.settings?.difficulty || 'normal',
-              players: gameData.finalGameState.map((player: any, index: number) => ({
-                id: player.id === 'guest' ? null : player.id,
-                username: player.username,
-                placement: player.placement || index + 1
-              })),
-              settings: gameData.settings || {
-                roundTime: 0,
-                maxPlayers: gameData.finalGameState.length,
-                allowHints: false
-              }
-            })
+            body: JSON.stringify(gameHistoryData)
           });
 
           if (!response.ok) {
@@ -88,6 +96,7 @@ const GameOverView: React.FC = () => {
 
     // Höre auf Game-Over-Event
     socket.on('gameOver', (data: { winner: Player, finalGameState: FinalGameState }) => {
+      console.log("Game Over Event empfangen:", data);
       setWinner(data.winner);
       setFinalGameState(data.finalGameState);
       setShowConfetti(true);
