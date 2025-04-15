@@ -25,7 +25,10 @@
           <tbody>
             {lobbys.map((lobby) => (
               <tr key={lobby.id}>
-                <td>{lobby.name}</td>
+                <td>
+                  {lobby.name}
+                  {lobby.has_password && <span className="password-icon">🔒</span>}
+                </td>
                 <td>{lobby.host}</td>
                 <td>
                   {lobby.created_at
