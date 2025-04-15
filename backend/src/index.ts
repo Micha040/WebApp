@@ -23,7 +23,13 @@ const io = new Server(httpServer, {
 });
 
 const corsOptions = {
-  origin: ["https://web-app-red-nine.vercel.app"],
+  origin:
+    process.env.NODE_ENV === "production"
+      ? [
+          "https://web-app-red-nine.vercel.app",
+          "https://webapp-8ehj.onrender.com",
+        ]
+      : "http://localhost:5173",
   methods: ["GET", "POST", "DELETE", "PATCH"],
   credentials: true,
   allowedHeaders: ["Content-Type"],
@@ -259,6 +265,18 @@ const authenticateToken = (
   }
 };
 
+// Funktion für konsistente Cookie-Einstellungen
+const getCookieOptions = () => ({
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite:
+    process.env.NODE_ENV === "production"
+      ? ("none" as const)
+      : ("lax" as const),
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
+  domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined,
+});
+
 // Auth Endpoints
 app.post("/auth/register", async (req, res) => {
   const { email, username, password } = req.body;
@@ -309,13 +327,8 @@ app.post("/auth/register", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Setze Cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
-    });
+    // Setze Cookie mit den neuen Optionen
+    res.cookie("token", token, getCookieOptions());
 
     // Sende Benutzerinfos zurück (ohne Passwort)
     const { password_hash, ...userWithoutPassword } = newUser;
@@ -366,13 +379,8 @@ app.post("/auth/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Setze Cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
-    });
+    // Setze Cookie mit den neuen Optionen
+    res.cookie("token", token, getCookieOptions());
 
     // Sende Benutzerinfos zurück (ohne Passwort)
     const { password_hash, ...userWithoutPassword } = user;
@@ -384,7 +392,7 @@ app.post("/auth/login", async (req, res) => {
 });
 
 app.post("/auth/logout", (_req, res) => {
-  res.clearCookie("token");
+  res.clearCookie("token", getCookieOptions());
   res.json({ message: "Erfolgreich ausgeloggt" });
 });
 
@@ -1407,13 +1415,8 @@ app.patch("/auth/profile", authenticateToken, async (req: AuthRequest, res) => {
       { expiresIn: "7d" }
     );
 
-    // Setze Cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
-    });
+    // Setze Cookie mit den neuen Optionen
+    res.cookie("token", token, getCookieOptions());
 
     res.json({
       id: userId,

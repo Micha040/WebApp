@@ -25,7 +25,12 @@ const io = new socket_io_1.Server(httpServer, {
     },
 });
 const corsOptions = {
-    origin: ["https://web-app-red-nine.vercel.app"],
+    origin: process.env.NODE_ENV === "production"
+        ? [
+            "https://web-app-red-nine.vercel.app",
+            "https://webapp-8ehj.onrender.com",
+        ]
+        : "http://localhost:5173",
     methods: ["GET", "POST", "DELETE", "PATCH"],
     credentials: true,
     allowedHeaders: ["Content-Type"],
@@ -173,6 +178,16 @@ const authenticateToken = (req, res, next) => {
         return res.status(403).json({ error: "Ungültiger Token" });
     }
 };
+// Funktion für konsistente Cookie-Einstellungen
+const getCookieOptions = () => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production"
+        ? "none"
+        : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
+    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined,
+});
 // Auth Endpoints
 app.post("/auth/register", async (req, res) => {
     const { email, username, password } = req.body;
@@ -212,13 +227,8 @@ app.post("/auth/register", async (req, res) => {
             throw error;
         // Erstelle JWT Token
         const token = jsonwebtoken_1.default.sign({ id: newUser.id, email: newUser.email, username: newUser.username }, JWT_SECRET, { expiresIn: "7d" });
-        // Setze Cookie
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
-        });
+        // Setze Cookie mit den neuen Optionen
+        res.cookie("token", token, getCookieOptions());
         // Sende Benutzerinfos zurück (ohne Passwort)
         const { password_hash, ...userWithoutPassword } = newUser;
         res.status(201).json(userWithoutPassword);
@@ -257,13 +267,8 @@ app.post("/auth/login", async (req, res) => {
             .eq("id", user.id);
         // Erstelle JWT Token
         const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, username: user.username }, JWT_SECRET, { expiresIn: "7d" });
-        // Setze Cookie
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
-        });
+        // Setze Cookie mit den neuen Optionen
+        res.cookie("token", token, getCookieOptions());
         // Sende Benutzerinfos zurück (ohne Passwort)
         const { password_hash, ...userWithoutPassword } = user;
         res.json(userWithoutPassword);
@@ -274,7 +279,7 @@ app.post("/auth/login", async (req, res) => {
     }
 });
 app.post("/auth/logout", (_req, res) => {
-    res.clearCookie("token");
+    res.clearCookie("token", getCookieOptions());
     res.json({ message: "Erfolgreich ausgeloggt" });
 });
 app.get("/auth/me", authenticateToken, (req, res) => {
@@ -1036,13 +1041,8 @@ app.patch("/auth/profile", authenticateToken, async (req, res) => {
             email: email || user.email,
             username: username || user.username,
         }, JWT_SECRET, { expiresIn: "7d" });
-        // Setze Cookie
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
-        });
+        // Setze Cookie mit den neuen Optionen
+        res.cookie("token", token, getCookieOptions());
         res.json({
             id: userId,
             email: email || user.email,
