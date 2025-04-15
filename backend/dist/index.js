@@ -31,13 +31,16 @@ const corsOptions = {
             "https://webapp-8ehj.onrender.com",
         ]
         : "http://localhost:5173",
-    methods: ["GET", "POST", "DELETE", "PATCH"],
+    methods: ["GET", "POST", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    exposedHeaders: ["set-cookie"],
 };
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
+// Füge einen OPTIONS-Handler für den Preflight-Request hinzu
+app.options("*", (0, cors_1.default)(corsOptions));
 const supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 let mapData = null;
@@ -186,7 +189,8 @@ const getCookieOptions = () => ({
         ? "none"
         : "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
-    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined,
+    path: "/",
+    domain: undefined, // Entferne die domain-Einschränkung
 });
 // Auth Endpoints
 app.post("/auth/register", async (req, res) => {
