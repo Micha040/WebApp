@@ -43,6 +43,17 @@ const GameOverView: React.FC = () => {
       // Speichere die Spieldaten
       const saveGameData = async () => {
         try {
+          // Hole zuerst die User-ID des Gewinners
+          const userResponse = await fetch(`${import.meta.env.VITE_API_URL}/auth/user/${gameData.winner.username}`, {
+            credentials: 'include'
+          });
+
+          if (!userResponse.ok) {
+            throw new Error('Fehler beim Laden der User-ID');
+          }
+
+          const userData = await userResponse.json();
+          
           const response = await fetch(`${import.meta.env.VITE_API_URL}/games/save`, {
             method: 'POST',
             headers: {
@@ -50,7 +61,7 @@ const GameOverView: React.FC = () => {
             },
             credentials: 'include',
             body: JSON.stringify({
-              winner_id: gameData.winner.id,
+              winner_id: userData.id, // Verwende die User-ID aus der Datenbank
               winner_username: gameData.winner.username,
               duration: gameData.duration || 0,
               player_count: gameData.finalGameState.length,
