@@ -10,8 +10,20 @@ const supabase_js_1 = require("@supabase/supabase-js");
 const dotenv_1 = __importDefault(require("dotenv"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const http_1 = require("http");
+const socket_io_1 = require("socket.io");
+const bcrypt_1 = __importDefault(require("bcrypt"));
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
+const httpServer = (0, http_1.createServer)(app);
+const io = new socket_io_1.Server(httpServer, {
+    cors: {
+        origin: process.env.FRONTEND_URL || "http://localhost:5173",
+        methods: ["GET", "POST"],
+    },
+});
 const corsOptions = {
     origin: ["https://web-app-red-nine.vercel.app"],
     methods: ["GET", "POST", "DELETE", "PATCH"],
@@ -20,7 +32,9 @@ const corsOptions = {
 };
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
+app.use((0, cookie_parser_1.default)());
 const supabase = (0, supabase_js_1.createClient)(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 let mapData = null;
 try {
     const mapPath = path_1.default.join(__dirname, "../public/map.json");
@@ -144,6 +158,128 @@ let chests = spawnPoints.map((point, index) => ({
     items: [],
 }));
 console.log("Initialisierte Truhen:", chests);
+// Middleware für geschützte Routen
+const authenticateToken = (req, res, next) => {
+    const token = req.cookies.token;
+    if (!token) {
+        return res.status(401).json({ error: "Nicht authentifiziert" });
+    }
+    try {
+        const user = jsonwebtoken_1.default.verify(token, JWT_SECRET);
+        req.user = user;
+        next();
+    }
+    catch (err) {
+        return res.status(403).json({ error: "Ungültiger Token" });
+    }
+};
+// Auth Endpoints
+app.post("/auth/register", async (req, res) => {
+    const { email, username, password } = req.body;
+    if (!email || !username || !password) {
+        return res
+            .status(400)
+            .json({ error: "Alle Felder müssen ausgefüllt sein" });
+    }
+    try {
+        // Prüfe ob E-Mail oder Username bereits existieren
+        const { data: existingUser } = await supabase
+            .from("users")
+            .select()
+            .or(`email.eq.${email},username.eq.${username}`)
+            .single();
+        if (existingUser) {
+            return res
+                .status(400)
+                .json({ error: "E-Mail oder Username bereits vergeben" });
+        }
+        // Hash das Passwort
+        const hashedPassword = await bcrypt_1.default.hash(password, 10);
+        // Erstelle neuen Benutzer
+        const { data: newUser, error } = await supabase
+            .from("users")
+            .insert([
+            {
+                id: (0, crypto_1.randomUUID)(),
+                email,
+                username,
+                password_hash: hashedPassword,
+            },
+        ])
+            .select()
+            .single();
+        if (error)
+            throw error;
+        // Erstelle JWT Token
+        const token = jsonwebtoken_1.default.sign({ id: newUser.id, email: newUser.email, username: newUser.username }, JWT_SECRET, { expiresIn: "7d" });
+        // Setze Cookie
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
+        });
+        // Sende Benutzerinfos zurück (ohne Passwort)
+        const { password_hash, ...userWithoutPassword } = newUser;
+        res.status(201).json(userWithoutPassword);
+    }
+    catch (err) {
+        console.error("Registrierungsfehler:", err);
+        res.status(500).json({ error: "Fehler bei der Registrierung" });
+    }
+});
+app.post("/auth/login", async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res
+            .status(400)
+            .json({ error: "E-Mail und Passwort sind erforderlich" });
+    }
+    try {
+        // Finde Benutzer
+        const { data: user, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("email", email)
+            .single();
+        if (error || !user) {
+            return res.status(401).json({ error: "Ungültige Anmeldedaten" });
+        }
+        // Überprüfe Passwort
+        const validPassword = await bcrypt_1.default.compare(password, user.password_hash);
+        if (!validPassword) {
+            return res.status(401).json({ error: "Ungültige Anmeldedaten" });
+        }
+        // Aktualisiere last_login
+        await supabase
+            .from("users")
+            .update({ last_login: new Date().toISOString() })
+            .eq("id", user.id);
+        // Erstelle JWT Token
+        const token = jsonwebtoken_1.default.sign({ id: user.id, email: user.email, username: user.username }, JWT_SECRET, { expiresIn: "7d" });
+        // Setze Cookie
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
+        });
+        // Sende Benutzerinfos zurück (ohne Passwort)
+        const { password_hash, ...userWithoutPassword } = user;
+        res.json(userWithoutPassword);
+    }
+    catch (err) {
+        console.error("Login-Fehler:", err);
+        res.status(500).json({ error: "Fehler beim Login" });
+    }
+});
+app.post("/auth/logout", (_req, res) => {
+    res.clearCookie("token");
+    res.json({ message: "Erfolgreich ausgeloggt" });
+});
+app.get("/auth/me", authenticateToken, (req, res) => {
+    res.json(req.user);
+});
 app.post("/lobby", async (req, res) => {
     const { username, name, password } = req.body;
     if (!username ||
@@ -461,17 +597,6 @@ app.post("/lobby/start", async (req, res) => {
         .status(200)
         .json({ message: "Spiel wurde gestartet und Skin gespeichert" });
 });
-const http_1 = __importDefault(require("http"));
-const socket_io_1 = require("socket.io");
-app.use(express_1.default.json());
-const server = http_1.default.createServer(app);
-const io = new socket_io_1.Server(server, {
-    cors: {
-        origin: "https://web-app-red-nine.vercel.app",
-        methods: ["GET", "POST"],
-        credentials: true,
-    },
-});
 const connectedPlayers = {};
 const bullets = [];
 io.on("connection", (socket) => {
@@ -778,7 +903,7 @@ function calculateItemPosition(chestX, chestY) {
     return { x, y };
 }
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`Server + WebSocket läuft auf http://localhost:${PORT}`);
 });
 async function cleanupInactiveLobbies() {
