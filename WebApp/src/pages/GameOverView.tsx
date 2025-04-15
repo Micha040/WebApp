@@ -39,9 +39,48 @@ const GameOverView: React.FC = () => {
       setWinner(gameData.winner);
       setFinalGameState(gameData.finalGameState);
       setShowConfetti(true);
+
+      // Speichere die Spieldaten
+      const saveGameData = async () => {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL}/games/save`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              winner_id: gameData.winner.id,
+              winner_username: gameData.winner.username,
+              duration: gameData.duration || 0,
+              player_count: gameData.finalGameState.length,
+              difficulty: gameData.settings?.difficulty || 'normal',
+              players: gameData.finalGameState.map((player: any, index: number) => ({
+                id: player.id || 'unknown',
+                username: player.username,
+                placement: index + 1
+              })),
+              settings: gameData.settings || {
+                roundTime: 0,
+                maxPlayers: gameData.finalGameState.length,
+                allowHints: false
+              }
+            })
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Fehler beim Speichern der Spielhistorie:', errorData);
+          }
+        } catch (err) {
+          console.error('Fehler beim Speichern der Spielhistorie:', err);
+        }
+      };
+
+      saveGameData();
     }
 
-    // Höre auf Game-Over-Event (falls die Daten nicht über die Navigation kamen)
+    // Höre auf Game-Over-Event
     socket.on('gameOver', (data: { winner: Player, finalGameState: FinalGameState }) => {
       setWinner(data.winner);
       setFinalGameState(data.finalGameState);

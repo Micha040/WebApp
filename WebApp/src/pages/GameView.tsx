@@ -793,7 +793,9 @@ const GameView: React.FC = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/games/save`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+        },
         credentials: 'include',
         body: JSON.stringify({
           winner_id: gameData.winner.id,
@@ -816,6 +818,8 @@ const GameView: React.FC = () => {
       });
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Server-Fehler:', errorData);
         throw new Error('Fehler beim Speichern der Spielhistorie');
       }
     } catch (err) {
