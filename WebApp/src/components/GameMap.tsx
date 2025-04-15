@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface TiledLayer {
   data: number[];
@@ -28,55 +28,70 @@ interface GameMapProps {
 }
 
 const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const tilesetRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Setze die Canvas-Größe
+    canvas.width = mapData.width * mapData.tilewidth;
+    canvas.height = mapData.height * mapData.tileheight;
+
+    // Lade das Tileset
+    const tileset = new Image();
+    tileset.src = '/tileset.png';
+    tilesetRef.current = tileset;
+
+    tileset.onload = () => {
+      // Rendere jede Ebene
+      mapData.layers.forEach(layer => {
+        if (layer.type !== 'tilelayer') return;
+
+        layer.data.forEach((tileId, index) => {
+          if (tileId === 0) return; // Überspringe leere Tiles
+
+          // Berechne die Position des Tiles auf der Karte
+          const x = (index % layer.width) * mapData.tilewidth;
+          const y = Math.floor(index / layer.width) * mapData.tileheight;
+
+          // Berechne die Position des Tiles im Tileset
+          // Subtrahiere 1 von tileId, da Tiled mit 1-basierter Indizierung arbeitet
+          const srcTileId = tileId - 1;
+          const srcX = (srcTileId % 32) * mapData.tilewidth;
+          const srcY = Math.floor(srcTileId / 32) * mapData.tileheight;
+
+          // Zeichne das Tile
+          ctx.drawImage(
+            tileset,
+            srcX,
+            srcY,
+            mapData.tilewidth,
+            mapData.tileheight,
+            x,
+            y,
+            mapData.tilewidth,
+            mapData.tileheight
+          );
+        });
+      });
+    };
+  }, [mapData]);
+
   return (
-    <div
+    <canvas
+      ref={canvasRef}
       style={{
         position: 'absolute',
         top: 0,
         left: 0,
-        width: mapData.width * mapData.tilewidth,
-        height: mapData.height * mapData.tileheight,
         zIndex: -1,
       }}
-    >
-      {mapData.layers.map((layer) => {
-        // Nur Tile-Layer rendern
-        if (layer.type !== 'tilelayer') return null;
-
-        return (
-          <div key={layer.name} style={{ position: 'absolute', top: 0, left: 0 }}>
-            {layer.data.map((tileId, index) => {
-              if (tileId === 0) return null; // Leere Tiles nicht rendern
-
-              const x = (index % layer.width) * mapData.tilewidth;
-              const y = Math.floor(index / layer.width) * mapData.tileheight;
-
-              let backgroundColor = '';
-              if (layer.name === 'Ground') {
-                backgroundColor = '#4a9c2d'; // Grün für Ground
-              } else if (layer.name === 'Solid') {
-                backgroundColor = '#8B4513'; // Braun für Solid/Wände
-              }
-
-              return (
-                <div
-                  key={`${layer.name}-${index}`}
-                  style={{
-                    position: 'absolute',
-                    left: x,
-                    top: y,
-                    width: mapData.tilewidth,
-                    height: mapData.tileheight,
-                    backgroundColor,
-                    border: '1px solid rgba(0,0,0,0.1)',
-                  }}
-                />
-              );
-            })}
-          </div>
-        );
-      })}
-    </div>
+    />
   );
 };
 
