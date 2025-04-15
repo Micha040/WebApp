@@ -10,6 +10,7 @@ const socket = io(import.meta.env.VITE_API_URL, {
 
 type Player = {
   username: string;
+  id?: string;
   health: number;
   isAlive: boolean;
   skin: {
@@ -22,7 +23,9 @@ type Player = {
 
 type FinalGameState = {
   username: string;
+  id?: string;
   isAlive: boolean;
+  placement: number;
 }[];
 //test
 const GameOverView: React.FC = () => {
@@ -37,6 +40,7 @@ const GameOverView: React.FC = () => {
     const gameData = location.state;
     if (gameData) {
       console.log("Empfangene Spieldaten:", gameData);
+      console.log("Winner Data:", gameData.winner);
       setWinner(gameData.winner);
       setFinalGameState(gameData.finalGameState);
       setShowConfetti(true);
@@ -46,7 +50,6 @@ const GameOverView: React.FC = () => {
         try {
           // Überprüfe zuerst, ob der Gewinner ein eingeloggter Benutzer ist
           console.log("Winner ID:", gameData.winner.id);
-          console.log("Winner Data:", gameData.winner);
           
           if (!gameData.winner.id || gameData.winner.id === 'guest') {
             console.log('Spielhistorie wird nicht gespeichert - Gewinner ist nicht eingeloggt');
@@ -59,10 +62,10 @@ const GameOverView: React.FC = () => {
             duration: gameData.duration || 0,
             player_count: gameData.finalGameState.length,
             difficulty: gameData.settings?.difficulty || 'normal',
-            players: gameData.finalGameState.map((player: any, index: number) => ({
+            players: gameData.finalGameState.map((player: any) => ({
               id: player.id === 'guest' ? null : player.id,
               username: player.username,
-              placement: player.placement || index + 1
+              placement: player.placement
             })),
             settings: gameData.settings || {
               roundTime: 0,
@@ -85,6 +88,8 @@ const GameOverView: React.FC = () => {
           if (!response.ok) {
             const errorData = await response.json();
             console.error('Fehler beim Speichern der Spielhistorie:', errorData);
+          } else {
+            console.log('Spielhistorie erfolgreich gespeichert');
           }
         } catch (err) {
           console.error('Fehler beim Speichern der Spielhistorie:', err);
