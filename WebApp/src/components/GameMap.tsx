@@ -96,6 +96,21 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
           const srcX = (srcTileId % tilesPerRow) * mapData.tilewidth;
           const srcY = Math.floor(srcTileId / tilesPerRow) * mapData.tileheight;
 
+          // Debug-Log für die ersten paar Tiles
+          if (index < 5) {
+            console.log(`Tile Debug [${index}]:`, {
+              tileId,
+              srcTileId,
+              tilesPerRow,
+              srcX,
+              srcY,
+              destX: x,
+              destY: y,
+              tileWidth: mapData.tilewidth,
+              tileHeight: mapData.tileheight
+            });
+          }
+
           // Debug: Zeichne einen farbigen Rahmen für jedes Tile
           if (layer.name === 'Ground') {
             ctx.strokeStyle = 'rgba(0,255,0,0.3)';
@@ -188,7 +203,7 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
         position: 'absolute',
         top: 0,
         left: 0,
-        zIndex: -1,
+        zIndex: 0,
         border: '2px solid red',
         background: '#2d2d2d'
       }}
