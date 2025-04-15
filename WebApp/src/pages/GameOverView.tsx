@@ -11,6 +11,7 @@ const socket = io(import.meta.env.VITE_API_URL, {
 type Player = {
   username: string;
   id?: string;
+  user_id?: string;
   health: number;
   isAlive: boolean;
   skin: {
@@ -55,9 +56,9 @@ const GameOverView: React.FC = () => {
           }
 
           // Überprüfe zuerst, ob der Gewinner ein eingeloggter Benutzer ist
-          console.log("Winner ID:", gameData.winner.id);
+          console.log("Winner User ID:", gameData.winner.user_id);
           
-          if (!gameData.winner.id || gameData.winner.id === 'guest') {
+          if (!gameData.winner.user_id) {
             console.log('Spielhistorie wird nicht gespeichert - Gewinner ist nicht eingeloggt');
             return;
           }
@@ -69,7 +70,7 @@ const GameOverView: React.FC = () => {
           }
 
           const gameHistoryData = {
-            winner_id: gameData.winner.id,
+            winner_id: gameData.winner.user_id,
             winner_username: gameData.winner.username || 'Unbekannt',
             duration: Math.max(0, gameData.duration || 0),
             player_count: gameData.finalGameState.length,
@@ -77,7 +78,7 @@ const GameOverView: React.FC = () => {
               ? gameData.settings.difficulty 
               : 'normal',
             players: gameData.finalGameState.map((player: any) => ({
-              id: player.id === 'guest' ? null : player.id,
+              id: player.user_id || null,
               username: player.username || 'Unbekannt',
               placement: typeof player.placement === 'number' ? player.placement : 0
             })),
