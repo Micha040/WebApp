@@ -27,7 +27,7 @@
               <tr key={lobby.id}>
                 <td>
                   {lobby.name}
-                  {lobby.has_password && <span className="password-icon">🔒</span>}
+                  {lobby.has_password && ' 🔒'}
                 </td>
                 <td>{lobby.host}</td>
                 <td>
