@@ -803,8 +803,13 @@ setInterval(() => {
         console.log("Final Game State:", finalGameState);
         const gameData = {
             winner: {
-                ...winner,
+                username: winner.username,
                 id: winner.userId,
+                health: winner.health,
+                isAlive: winner.isAlive,
+                skin: winner.skin,
+                x: winner.x,
+                y: winner.y,
             },
             finalGameState,
             settings: {
