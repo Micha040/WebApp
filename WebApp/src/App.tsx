@@ -105,7 +105,7 @@ function App() {
     }
   };
   
-
+//test
   const fetchLobbys = async () => {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/lobbys`);
     const data = await res.json();
