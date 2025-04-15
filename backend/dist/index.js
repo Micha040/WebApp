@@ -780,7 +780,7 @@ io.on("connection", (socket) => {
         console.log("Kisten auf Anfrage gesendet:", chests);
     });
 });
-setInterval(() => {
+setInterval(async () => {
     Object.entries(connectedPlayers).forEach(([socketId, player]) => {
         if (player.health <= 0 && player.isAlive) {
             connectedPlayers[socketId].isAlive = false;
@@ -794,9 +794,21 @@ setInterval(() => {
             username: winner.username,
             userId: winner.userId,
         });
-        const finalGameState = Object.entries(connectedPlayers).map(([socketId, player]) => ({
+        // Hole die User-IDs für alle Spieler
+        const userIds = await Promise.all(Object.values(connectedPlayers).map(async (player) => {
+            if (player.userId)
+                return player.userId;
+            // Wenn keine userId vorhanden ist, versuche sie aus der Datenbank zu holen
+            const { data } = await supabase
+                .from("users")
+                .select("id")
+                .eq("username", player.username)
+                .single();
+            return data?.id || "guest";
+        }));
+        const finalGameState = Object.entries(connectedPlayers).map(([socketId, player], index) => ({
             username: player.username,
-            id: player.userId || "guest",
+            id: userIds[index],
             isAlive: player.isAlive,
             placement: player.isAlive ? 1 : 2,
         }));
@@ -804,7 +816,10 @@ setInterval(() => {
         const gameData = {
             winner: {
                 username: winner.username,
-                id: winner.userId,
+                id: winner.userId ||
+                    userIds.find((_, index) => Object.values(connectedPlayers)[index].username ===
+                        winner.username) ||
+                    "guest",
                 health: winner.health,
                 isAlive: winner.isAlive,
                 skin: winner.skin,
