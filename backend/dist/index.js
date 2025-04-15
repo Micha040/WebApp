@@ -631,6 +631,7 @@ io.on("connection", (socket) => {
         if (userError) {
             console.error("Fehler beim Laden der User-ID:", userError);
         }
+        console.log(`Spieler ${data.username} tritt bei. User-ID:`, userData?.id);
         const { data: skinData, error: skinError } = await supabase
             .from("skins")
             .select("ball, eyes, mouth, top")
@@ -652,6 +653,10 @@ io.on("connection", (socket) => {
             skin: skinData,
             isAlive: true,
         };
+        console.log("Aktualisierte connectedPlayers:", Object.entries(connectedPlayers).map(([id, player]) => ({
+            username: player.username,
+            userId: player.userId,
+        })));
         io.emit("playersUpdate", connectedPlayers);
     });
     socket.on("move", (directions) => {
@@ -785,30 +790,32 @@ setInterval(() => {
     const alivePlayers = Object.values(connectedPlayers).filter((player) => player.isAlive);
     if (alivePlayers.length === 1 && Object.values(connectedPlayers).length > 1) {
         const winner = alivePlayers[0];
-        // Erstelle finalGameState mit Platzierungen basierend auf dem Todeszeitpunkt
-        const finalGameState = Object.entries(connectedPlayers)
-            .map(([socketId, player]) => ({
+        console.log("Game Over - Winner:", {
+            username: winner.username,
+            userId: winner.userId,
+        });
+        const finalGameState = Object.entries(connectedPlayers).map(([socketId, player]) => ({
             username: player.username,
-            id: player.userId || "guest", // Fallback für nicht eingeloggte Spieler
+            id: player.userId || "guest",
             isAlive: player.isAlive,
-            placement: player.isAlive ? 1 : 2, // Gewinner ist 1, alle anderen 2
-        }))
-            .sort((a, b) => a.placement - b.placement);
-        const gameSettings = {
-            difficulty: "normal",
-            roundTime: 0,
-            maxPlayers: Object.keys(connectedPlayers).length,
-            allowHints: false,
-        };
+            placement: player.isAlive ? 1 : 2,
+        }));
+        console.log("Final Game State:", finalGameState);
         const gameData = {
             winner: {
                 ...winner,
-                id: winner.userId || "guest",
+                id: winner.userId,
             },
             finalGameState,
-            settings: gameSettings,
-            duration: 0, // TODO: Spielzeit tracken
+            settings: {
+                difficulty: "normal",
+                roundTime: 0,
+                maxPlayers: Object.keys(connectedPlayers).length,
+                allowHints: false,
+            },
+            duration: 0,
         };
+        console.log("Sending game data:", gameData);
         io.emit("gameOver", gameData);
         io.emit("navigateToGameOver", {
             ...gameData,
