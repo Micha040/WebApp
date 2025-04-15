@@ -1524,3 +1524,30 @@ app.get(
     }
   }
 );
+
+// Endpunkt zum Abrufen der User-ID anhand des Benutzernamens
+app.get(
+  "/auth/user/:username",
+  authenticateToken,
+  async (req: AuthRequest, res) => {
+    try {
+      const { username } = req.params;
+
+      const { data, error } = await supabase
+        .from("users")
+        .select("id")
+        .eq("username", username)
+        .single();
+
+      if (error) throw error;
+      if (!data) {
+        return res.status(404).json({ error: "Benutzer nicht gefunden" });
+      }
+
+      res.json(data);
+    } catch (err) {
+      console.error("Fehler beim Laden der User-ID:", err);
+      res.status(500).json({ error: "Fehler beim Laden der User-ID" });
+    }
+  }
+);
