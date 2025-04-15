@@ -64,41 +64,24 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
     const tileset = new Image();
     tileset.crossOrigin = 'anonymous';
     
-    // Versuche verschiedene Pfade für das Tileset
-    const possiblePaths = [
-      '/tileset.png',
-      'tileset.png',
-      `${window.location.origin}/tileset.png`,
-      '/public/tileset.png'
-    ];
-
-    let currentPathIndex = 0;
-
-    const tryLoadTileset = () => {
-      if (currentPathIndex >= possiblePaths.length) {
-        console.error('Konnte Tileset unter keinem der Pfade laden');
-        return;
-      }
-
-      const path = possiblePaths[currentPathIndex];
-      console.log(`Versuche Tileset zu laden von: ${path}`);
-      
-      tileset.src = path;
-    };
-
-    tileset.onerror = () => {
-      console.error(`Fehler beim Laden des Tilesets von: ${tileset.src}`);
-      currentPathIndex++;
-      tryLoadTileset();
+    // Verwende die bekannte funktionierende URL
+    const tilesetUrl = 'https://web-app-red-nine.vercel.app/tileset.png';
+    console.log('Versuche Tileset zu laden von:', tilesetUrl);
+    
+    tileset.onerror = (e) => {
+      console.error('Fehler beim Laden des Tilesets:', e);
+      // Zeige einen roten Fehlerindikator im Canvas
+      ctx.fillStyle = 'rgba(255,0,0,0.3)';
+      ctx.fillRect(0, 0, 100, 100);
     };
 
     tileset.onload = () => {
-      console.log('Tileset erfolgreich geladen von:', tileset.src);
-      console.log('Tileset Dimensionen:', tileset.width, 'x', tileset.height);
+      console.log('Tileset erfolgreich geladen, Dimensionen:', tileset.width, 'x', tileset.height);
 
       // Rendere jede Ebene
       mapData.layers.forEach(layer => {
         if (layer.type !== 'tilelayer') return;
+        console.log(`Rendere Layer "${layer.name}" mit ${layer.data.length} Tiles`);
 
         layer.data.forEach((tileId, index) => {
           if (tileId === 0) return; // Überspringe leere Tiles
@@ -122,6 +105,14 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
           ctx.strokeRect(x, y, mapData.tilewidth, mapData.tileheight);
 
           try {
+            // Debug: Zeichne einen Punkt an der Quellposition im Debug-Canvas
+            const debugScale = 0.2; // Skaliere das Debug-Tileset kleiner
+            const debugX = 10 + (srcX * debugScale);
+            const debugY = 10 + (srcY * debugScale);
+            ctx.fillStyle = 'rgba(255,255,0,0.5)';
+            ctx.fillRect(debugX, debugY, 2, 2);
+
+            // Zeichne das eigentliche Tile
             ctx.drawImage(
               tileset,
               srcX,
@@ -134,13 +125,18 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
               mapData.tileheight
             );
 
-            // Debug: Zeichne die Tile-ID in die Mitte des Tiles
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            // Debug: Zeichne die Tile-Informationen
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
             ctx.font = '8px Arial';
             ctx.fillText(
               `${tileId}`,
-              x + mapData.tilewidth/2 - 8,
-              y + mapData.tileheight/2 + 3
+              x + 2,
+              y + 10
+            );
+            ctx.fillText(
+              `${srcX},${srcY}`,
+              x + 2,
+              y + 20
             );
 
           } catch (error) {
@@ -153,15 +149,36 @@ const GameMap: React.FC<GameMapProps> = ({ mapData }) => {
               tilesetSize: `${tileset.width}x${tileset.height}`,
               tilesPerRow
             });
+            
+            // Markiere fehlerhafte Tiles
+            ctx.fillStyle = 'rgba(255,0,0,0.3)';
+            ctx.fillRect(x, y, mapData.tilewidth, mapData.tileheight);
           }
         });
       });
+
+      // Debug: Zeichne eine kleine Version des Tilesets in die obere linke Ecke
+      try {
+        const debugWidth = tileset.width * 0.2;
+        const debugHeight = tileset.height * 0.2;
+        ctx.globalAlpha = 0.5;
+        ctx.drawImage(tileset, 10, 10, debugWidth, debugHeight);
+        ctx.globalAlpha = 1.0;
+      } catch (error) {
+        console.error('Fehler beim Zeichnen des Debug-Tilesets:', error);
+      }
     };
 
-    // Starte den Ladeversuch
-    tryLoadTileset();
-
+    tileset.src = tilesetUrl;
     tilesetRef.current = tileset;
+
+    return () => {
+      // Cleanup
+      if (tilesetRef.current) {
+        tilesetRef.current.onload = null;
+        tilesetRef.current.onerror = null;
+      }
+    };
   }, [mapData]);
 
   return (
