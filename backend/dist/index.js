@@ -1083,15 +1083,12 @@ app.post("/games/save", authenticateToken, async (req, res) => {
 });
 // Spielhistorie abrufen
 app.get("/games/history", authenticateToken, async (req, res) => {
-    const userId = req.user?.id;
-    if (!userId) {
-        return res.status(401).json({ error: "Nicht authentifiziert" });
-    }
     try {
+        const userId = req.user?.id;
         const { data, error } = await supabase
             .from("game_history")
             .select("*")
-            .or(`players->>.id.eq.${userId}`)
+            .or(`winner_id.eq.${userId},players->any->>'id'.eq.${userId}`)
             .order("game_date", { ascending: false });
         if (error)
             throw error;
