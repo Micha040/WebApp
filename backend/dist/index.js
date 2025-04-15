@@ -1167,6 +1167,7 @@ app.post("/games/save", authenticateToken, async (req, res) => {
             {
                 ...gameData,
                 game_date: new Date().toISOString(),
+                player_ids: gameData.player_ids || [], // Speichere die Spieler-IDs
             },
         ]);
         if (error) {
@@ -1187,7 +1188,7 @@ app.get("/games/history", authenticateToken, async (req, res) => {
         const { data, error } = await supabase
             .from("game_history")
             .select("*")
-            .or(`winner_id.eq.${userId},players->any->>'id'.eq.${userId}`)
+            .contains("player_ids", [userId]) // Suche nach Spielen, in denen der Benutzer enthalten ist
             .order("game_date", { ascending: false });
         if (error)
             throw error;
