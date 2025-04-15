@@ -459,7 +459,13 @@ app.post("/lobby", async (req: Request, res: Response) => {
 
     const { data: insertedPlayer, error: playerInsertError } = await supabase
       .from("players")
-      .insert([{ username, lobby_id: lobbyId }])
+      .insert([
+        {
+          username,
+          lobby_id: lobbyId,
+          user_id: userId, // Füge user_id hinzu
+        },
+      ])
       .select("id")
       .single();
 
@@ -545,7 +551,13 @@ app.post("/lobby/join", async (req: Request, res: Response) => {
 
     const { data: insertedPlayer, error: insertError } = await supabase
       .from("players")
-      .insert([{ username, lobby_id: lobbyId }])
+      .insert([
+        {
+          username,
+          lobby_id: lobbyId,
+          user_id: userId, // Füge user_id auch beim Joinen hinzu
+        },
+      ])
       .select("id")
       .single();
 
