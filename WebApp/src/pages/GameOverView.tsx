@@ -56,6 +56,7 @@ const GameOverView: React.FC = () => {
           }
 
           // Überprüfe zuerst, ob der Gewinner ein eingeloggter Benutzer ist
+          console.log("Winner Data:", gameData.winner);
           console.log("Winner User ID:", gameData.winner.user_id);
           
           if (!gameData.winner.user_id) {
