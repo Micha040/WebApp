@@ -6,9 +6,18 @@ import { Modal } from './components/Modal';
 import { supabase } from './supabaseClient';
 import JoinLobbyModal from './components/JoinLobbyModal';
 import { Toast } from './components/Toast';
+import { AuthModal } from './components/AuthModal';
+import { UserMenu } from './components/UserMenu';
 import GameView from './pages/GameView';
 import GameOverView from './pages/GameOverView';
 import './App.css';
+
+type User = {
+  id: string;
+  username: string;
+  email: string;
+  avatar_url?: string;
+};
 
 function App() {
   const [username, setUsername] = useState('');
@@ -20,13 +29,32 @@ function App() {
   const [lobbys, setLobbys] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedLobby, setSelectedLobby] = useState<any | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
-
+  const [user, setUser] = useState<User | null>(null);
 
   const navigate = useNavigate();
   console.log(lobbyId)
+
+  // Prüfe beim Start, ob der Benutzer bereits eingeloggt ist
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        }
+      } catch (err) {
+        console.error('Fehler beim Laden des Benutzers:', err);
+      }
+    };
+    checkAuth();
+  }, []);
 
   const handleCreateLobby = async () => {
     if (!username.trim() || !lobbyName.trim()) {
@@ -129,10 +157,15 @@ function App() {
       <nav className="navbar">
         <div className="navbar-brand">🎮 Game Lobby</div>
         <div className="navbar-menu">
-          <button className="nav-button">Home</button>
-          <button className="nav-button">Lobbys</button>
-          <button className="nav-button">Profil</button>
-          <button className="nav-button login-button">Login</button>
+          <button className="nav-button" onClick={() => navigate('/')}>Home</button>
+          <button className="nav-button" onClick={() => navigate('/lobbys')}>Lobbys</button>
+          {user ? (
+            <UserMenu user={user} onLogout={() => setUser(null)} />
+          ) : (
+            <button className="nav-button login-button" onClick={() => setShowAuthModal(true)}>
+              Login
+            </button>
+          )}
         </div>
       </nav>
 
@@ -227,6 +260,19 @@ function App() {
           <Route path="/game-over" element={<GameOverView />} />
         </Routes>
       </main>
+
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={(userData) => {
+            setUser(userData);
+            setShowAuthModal(false);
+            setToastMessage('Erfolgreich eingeloggt!');
+            setToastType('success');
+          }}
+        />
+      )}
     </div>
   );
 }

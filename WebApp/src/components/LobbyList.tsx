@@ -28,7 +28,6 @@
               <tr key={lobby.id}>
                 <td>
                   {lobby.name}
-                  {lobby.has_password && ' 🔒'}
                 </td>
                 <td style={{ textAlign: 'center' }}>
                   {lobby.has_password ? '🔒' : '🔓'}
