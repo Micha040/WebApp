@@ -56,7 +56,7 @@ const GameOverView: React.FC = () => {
               player_count: gameData.finalGameState.length,
               difficulty: gameData.settings?.difficulty || 'normal',
               players: gameData.finalGameState.map((player: any, index: number) => ({
-                id: player.id || 'unknown',
+                id: player.id,
                 username: player.username,
                 placement: index + 1
               })),
