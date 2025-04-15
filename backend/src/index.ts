@@ -1322,3 +1322,106 @@ async function loadChests() {
 loadChests();
 
 setInterval(saveChests, 30000);
+
+// Profil bearbeiten
+app.patch("/auth/profile", authenticateToken, async (req: AuthRequest, res) => {
+  const { username, email, currentPassword, newPassword } = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Nicht authentifiziert" });
+  }
+
+  try {
+    // Hole den aktuellen Benutzer
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (userError || !user) {
+      return res.status(404).json({ error: "Benutzer nicht gefunden" });
+    }
+
+    // Wenn ein neues Passwort gesetzt werden soll
+    if (newPassword) {
+      if (!currentPassword) {
+        return res
+          .status(400)
+          .json({ error: "Aktuelles Passwort ist erforderlich" });
+      }
+
+      // Überprüfe das aktuelle Passwort
+      const validPassword = await bcrypt.compare(
+        currentPassword,
+        user.password_hash
+      );
+      if (!validPassword) {
+        return res.status(401).json({ error: "Aktuelles Passwort ist falsch" });
+      }
+
+      // Hash das neue Passwort
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password_hash = hashedPassword;
+    }
+
+    // Prüfe ob E-Mail oder Username bereits existieren
+    if (email !== user.email || username !== user.username) {
+      const { data: existingUser } = await supabase
+        .from("users")
+        .select()
+        .or(`email.eq.${email},username.eq.${username}`)
+        .neq("id", userId)
+        .single();
+
+      if (existingUser) {
+        return res
+          .status(400)
+          .json({ error: "E-Mail oder Username bereits vergeben" });
+      }
+    }
+
+    // Aktualisiere den Benutzer
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({
+        username: username || user.username,
+        email: email || user.email,
+        password_hash: user.password_hash,
+      })
+      .eq("id", userId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    // Erstelle neuen JWT Token
+    const token = jwt.sign(
+      {
+        id: userId,
+        email: email || user.email,
+        username: username || user.username,
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // Setze Cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 Tage
+    });
+
+    res.json({
+      id: userId,
+      email: email || user.email,
+      username: username || user.username,
+    });
+  } catch (err) {
+    console.error("Fehler beim Aktualisieren des Profils:", err);
+    res.status(500).json({ error: "Fehler beim Aktualisieren des Profils" });
+  }
+});
