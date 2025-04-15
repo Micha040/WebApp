@@ -822,6 +822,7 @@ const connectedPlayers: Record<
     x: number;
     y: number;
     username: string;
+    userId: string | undefined;
     health: number;
     skin: any;
     shield?: number;
@@ -861,6 +862,17 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // Hole die User-ID des Spielers
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("username", data.username)
+      .single();
+
+    if (userError) {
+      console.error("Fehler beim Laden der User-ID:", userError);
+    }
+
     const { data: skinData, error: skinError } = await supabase
       .from("skins")
       .select("ball, eyes, mouth, top")
@@ -883,6 +895,7 @@ io.on("connection", (socket) => {
       x: randomSpawnPoint.x,
       y: randomSpawnPoint.y,
       username: data.username,
+      userId: userData?.id,
       health: 100,
       skin: skinData,
       isAlive: true,
@@ -1062,15 +1075,37 @@ setInterval(() => {
     const finalGameState = Object.entries(connectedPlayers).map(
       ([socketId, player]) => ({
         username: player.username,
+        id: player.userId,
         isAlive: player.isAlive,
       })
     );
 
-    io.emit("gameOver", { winner, finalGameState });
+    io.emit("gameOver", {
+      winner: {
+        ...winner,
+        id: winner.userId,
+      },
+      finalGameState,
+      settings: {
+        difficulty: "normal",
+        roundTime: 0,
+        maxPlayers: Object.keys(connectedPlayers).length,
+        allowHints: false,
+      },
+    });
 
     io.emit("navigateToGameOver", {
-      winner,
+      winner: {
+        ...winner,
+        id: winner.userId,
+      },
       finalGameState,
+      settings: {
+        difficulty: "normal",
+        roundTime: 0,
+        maxPlayers: Object.keys(connectedPlayers).length,
+        allowHints: false,
+      },
       isGameFinished: true,
     });
 
