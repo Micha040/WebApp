@@ -290,96 +290,48 @@ app.get("/auth/me", authenticateToken, (req, res) => {
     res.json(req.user);
 });
 app.post("/lobby", async (req, res) => {
-    const { username, name, password } = req.body;
-    if (!username ||
-        typeof username !== "string" ||
-        !name ||
-        typeof name !== "string") {
-        return res
-            .status(400)
-            .json({ error: "Ungültiger Username oder Lobbyname" });
-    }
-    const lobbyId = (0, crypto_1.randomUUID)();
-    const { error: lobbyError } = await supabase.from("lobbys").insert([
-        {
-            id: lobbyId,
-            host: username,
-            name,
-            password,
-            has_password: password ? true : false,
-        },
-    ]);
-    if (lobbyError) {
-        console.error("Supabase-Fehler (Lobby erstellen):", lobbyError);
-        return res.status(500).json({ error: lobbyError.message });
-    }
-    const { data: insertedPlayer, error: playerInsertError } = await supabase
-        .from("players")
-        .insert([{ username, lobby_id: lobbyId }])
-        .select("id")
-        .single();
-    if (playerInsertError) {
-        console.error("Supabase-Fehler (Host als Spieler hinzufügen):", playerInsertError);
-        return res.status(500).json({ error: playerInsertError.message });
-    }
-    const { error: skinError } = await supabase.from("skins").insert([
-        {
-            player_id: insertedPlayer.id,
-            lobby_id: lobbyId,
-            top: "none",
-            ball: "sprite_1",
-            eyes: "sprite_1",
-            mouth: "sprite_1",
-        },
-    ]);
-    if (skinError) {
-        console.error("Supabase-Fehler (Skin erstellen):", skinError);
-        return res.status(500).json({ error: skinError.message });
-    }
-    res.json({ lobbyId });
-});
-app.post("/lobby/join", async (req, res) => {
-    const { username, lobbyId, password } = req.body;
-    const { data: lobby, error: lobbyError } = await supabase
-        .from("lobbys")
-        .select("id, password, max_players")
-        .eq("id", lobbyId)
-        .single();
-    if (lobbyError || !lobby) {
-        return res.status(404).json({ error: "Lobby nicht gefunden" });
-    }
-    if (lobby.password && lobby.password !== password) {
-        return res.status(401).json({ error: "Falsches Passwort" });
-    }
-    const { count, error: countError } = await supabase
-        .from("players")
-        .select("*", { count: "exact", head: true })
-        .eq("lobby_id", lobbyId);
-    if (countError) {
-        return res.status(500).json({ error: "Fehler beim Zählen der Spieler" });
-    }
-    if (count !== null && count >= lobby.max_players) {
-        return res.status(400).json({ error: "Lobby ist voll" });
-    }
-    const { data: insertedPlayer, error: insertError } = await supabase
-        .from("players")
-        .insert([{ username, lobby_id: lobbyId }])
-        .select("id")
-        .single();
-    if (insertError) {
-        return res.status(500).json({ error: "Fehler beim Beitritt zur Lobby" });
-    }
-    const playerId = insertedPlayer.id;
-    const { data: existingSkin, error: skinCheckError } = await supabase
-        .from("skins")
-        .select("id")
-        .eq("player_id", playerId)
-        .maybeSingle();
-    if (skinCheckError) {
-        console.error("Fehler beim Skin-Check:", skinCheckError.message);
-    }
-    if (!existingSkin) {
-        const { error: skinInsertError } = await supabase.from("skins").insert([
+    try {
+        const { username, name, password } = req.body;
+        const lobbyId = (0, crypto_1.randomUUID)();
+        // Prüfe, ob der Benutzer eingeloggt ist
+        const user = req.user;
+        const userId = user?.id; // Wird undefined sein, wenn nicht eingeloggt
+        const newPlayer = {
+            id: (0, crypto_1.randomUUID)(),
+            username,
+            user_id: userId, // Speichere die user_id, falls vorhanden
+            health: 100,
+            isAlive: true,
+            skin: {
+                ball: "sprite_1",
+                eyes: "sprite_1",
+                mouth: "sprite_1",
+                top: "none",
+            },
+        };
+        const { error: lobbyError } = await supabase.from("lobbys").insert([
+            {
+                id: lobbyId,
+                host: username,
+                name,
+                password,
+                has_password: password ? true : false,
+            },
+        ]);
+        if (lobbyError) {
+            console.error("Supabase-Fehler (Lobby erstellen):", lobbyError);
+            return res.status(500).json({ error: lobbyError.message });
+        }
+        const { data: insertedPlayer, error: playerInsertError } = await supabase
+            .from("players")
+            .insert([{ username, lobby_id: lobbyId }])
+            .select("id")
+            .single();
+        if (playerInsertError) {
+            console.error("Supabase-Fehler (Host als Spieler hinzufügen):", playerInsertError);
+            return res.status(500).json({ error: playerInsertError.message });
+        }
+        const { error: skinError } = await supabase.from("skins").insert([
             {
                 player_id: insertedPlayer.id,
                 lobby_id: lobbyId,
@@ -389,12 +341,96 @@ app.post("/lobby/join", async (req, res) => {
                 mouth: "sprite_1",
             },
         ]);
-        if (skinInsertError) {
-            console.error("Fehler beim Erstellen des Skins:", skinInsertError.message);
+        if (skinError) {
+            console.error("Supabase-Fehler (Skin erstellen):", skinError);
+            return res.status(500).json({ error: skinError.message });
         }
+        res.json({ lobbyId });
     }
-    await updateLobbyActivity(lobbyId);
-    res.status(200).json({ message: "Beigetreten" });
+    catch (err) {
+        console.error("Fehler beim Erstellen der Lobby:", err);
+        res.status(500).json({ error: "Fehler beim Erstellen der Lobby" });
+    }
+});
+app.post("/lobby/join", async (req, res) => {
+    try {
+        const { username, lobbyId, password } = req.body;
+        // Prüfe, ob der Benutzer eingeloggt ist
+        const user = req.user;
+        const userId = user?.id; // Wird undefined sein, wenn nicht eingeloggt
+        const newPlayer = {
+            id: (0, crypto_1.randomUUID)(),
+            username,
+            user_id: userId, // Speichere die user_id, falls vorhanden
+            health: 100,
+            isAlive: true,
+            skin: {
+                ball: "sprite_1",
+                eyes: "sprite_1",
+                mouth: "sprite_1",
+                top: "none",
+            },
+        };
+        const { data: lobby, error: lobbyError } = await supabase
+            .from("lobbys")
+            .select("id, password, max_players")
+            .eq("id", lobbyId)
+            .single();
+        if (lobbyError || !lobby) {
+            return res.status(404).json({ error: "Lobby nicht gefunden" });
+        }
+        if (lobby.password && lobby.password !== password) {
+            return res.status(401).json({ error: "Falsches Passwort" });
+        }
+        const { count, error: countError } = await supabase
+            .from("players")
+            .select("*", { count: "exact", head: true })
+            .eq("lobby_id", lobbyId);
+        if (countError) {
+            return res.status(500).json({ error: "Fehler beim Zählen der Spieler" });
+        }
+        if (count !== null && count >= lobby.max_players) {
+            return res.status(400).json({ error: "Lobby ist voll" });
+        }
+        const { data: insertedPlayer, error: insertError } = await supabase
+            .from("players")
+            .insert([{ username, lobby_id: lobbyId }])
+            .select("id")
+            .single();
+        if (insertError) {
+            return res.status(500).json({ error: "Fehler beim Beitritt zur Lobby" });
+        }
+        const playerId = insertedPlayer.id;
+        const { data: existingSkin, error: skinCheckError } = await supabase
+            .from("skins")
+            .select("id")
+            .eq("player_id", playerId)
+            .maybeSingle();
+        if (skinCheckError) {
+            console.error("Fehler beim Skin-Check:", skinCheckError.message);
+        }
+        if (!existingSkin) {
+            const { error: skinInsertError } = await supabase.from("skins").insert([
+                {
+                    player_id: insertedPlayer.id,
+                    lobby_id: lobbyId,
+                    top: "none",
+                    ball: "sprite_1",
+                    eyes: "sprite_1",
+                    mouth: "sprite_1",
+                },
+            ]);
+            if (skinInsertError) {
+                console.error("Fehler beim Erstellen des Skins:", skinInsertError.message);
+            }
+        }
+        await updateLobbyActivity(lobbyId);
+        res.status(200).json({ message: "Beigetreten" });
+    }
+    catch (err) {
+        console.error("Fehler beim Beitreten zur Lobby:", err);
+        res.status(500).json({ error: "Fehler beim Beitreten zur Lobby" });
+    }
 });
 app.delete("/lobby/:id/leave/:username", async (req, res) => {
     const { id, username } = req.params;
