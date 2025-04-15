@@ -1433,3 +1433,53 @@ app.patch("/auth/profile", authenticateToken, async (req: AuthRequest, res) => {
     res.status(500).json({ error: "Fehler beim Aktualisieren des Profils" });
   }
 });
+
+// Spielhistorie speichern
+app.post("/games/save", authenticateToken, async (req: AuthRequest, res) => {
+  const gameData = req.body;
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Nicht authentifiziert" });
+  }
+
+  try {
+    const { error } = await supabase.from("game_history").insert([
+      {
+        ...gameData,
+        game_date: new Date().toISOString(),
+      },
+    ]);
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Fehler beim Speichern des Spiels:", err);
+    res.status(500).json({ error: "Fehler beim Speichern des Spiels" });
+  }
+});
+
+// Spielhistorie abrufen
+app.get("/games/history", authenticateToken, async (req: AuthRequest, res) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Nicht authentifiziert" });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("game_history")
+      .select("*")
+      .or(`players->>.id.eq.${userId}`)
+      .order("game_date", { ascending: false });
+
+    if (error) throw error;
+
+    res.json(data);
+  } catch (err) {
+    console.error("Fehler beim Laden der Spielhistorie:", err);
+    res.status(500).json({ error: "Fehler beim Laden der Spielhistorie" });
+  }
+});
