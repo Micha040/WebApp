@@ -1564,11 +1564,47 @@ app.post("/games/save", authenticateToken, async (req: AuthRequest, res) => {
     console.log("Empfangene Spieldaten:", gameData);
     console.log("User ID:", userId);
 
+    // Hole die Benutzerinformationen für alle Spieler
+    const playerUsernames = gameData.players.map((p: any) => p.username);
+    const { data: users, error: usersError } = await supabase
+      .from("users")
+      .select("id, username")
+      .in("username", playerUsernames);
+
+    if (usersError) {
+      console.error("Fehler beim Laden der Benutzer:", usersError);
+      throw usersError;
+    }
+
+    // Erstelle eine Map von Username zu User-ID
+    const usernameToIdMap = new Map(
+      users?.map((user) => [user.username, user.id]) || []
+    );
+
+    // Aktualisiere die Spieler-IDs und Usernames
+    const updatedPlayers = gameData.players.map((player: any) => {
+      const userId = usernameToIdMap.get(player.username);
+      return {
+        ...player,
+        id: userId || null,
+        username: userId
+          ? users?.find((u) => u.id === userId)?.username || player.username
+          : player.username,
+      };
+    });
+
     const { error } = await supabase.from("game_history").insert([
       {
-        ...gameData,
         game_date: new Date().toISOString(),
-        player_ids: gameData.player_ids || [], // Speichere die Spieler-IDs
+        duration: gameData.duration || 0,
+        player_count: gameData.player_count || updatedPlayers.length,
+        difficulty: gameData.difficulty || "normal",
+        players: updatedPlayers,
+        settings: gameData.settings || {},
+        winner_username: gameData.winner_username,
+        player_ids: updatedPlayers
+          .filter((p: any) => p.id) // Nur Spieler mit ID (angemeldete Benutzer)
+          .map((p: any) => p.id),
       },
     ]);
 
