@@ -797,6 +797,11 @@ const GameView: React.FC = () => {
         return;
       }
 
+      // Sammle alle Spieler-IDs (nur für angemeldete Spieler)
+      const playerIds = gameData.finalGameState
+        .filter((player: any) => player.id) // Nur angemeldete Spieler
+        .map((player: any) => player.id);
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/games/save`, {
         method: 'POST',
         headers: { 
